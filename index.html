@@ -143,6 +143,47 @@ a.site-link:hover, a.tool-link:hover { text-decoration:underline; }
 .popup-footer .add-row { display:flex; gap:6px; flex-wrap:wrap; }
 .popup-footer .add-row select { padding:4px 6px; border:1px solid #ddd; border-radius:6px; font-size:11px; }
 
+/* Auth bar */
+.auth-bar { display:flex; justify-content:flex-end; align-items:center; gap:10px; padding:8px 0; }
+.auth-bar .user-info { font-size:13px; color:#667eea; font-weight:500; }
+.auth-bar button { padding:5px 16px; border:1px solid #ddd; border-radius:16px; background:#fff; cursor:pointer; font-size:12px; transition:all .2s; }
+.auth-bar button:hover { border-color:#667eea; color:#667eea; }
+.auth-bar .btn-primary { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; }
+.auth-bar .btn-primary:hover { opacity:.9; }
+
+/* Auth modal */
+.auth-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.45); z-index:1100; justify-content:center; align-items:center; }
+.auth-modal.show { display:flex; }
+.auth-box { background:#fff; border-radius:14px; width:380px; max-width:92vw; padding:30px; box-shadow:0 8px 40px rgba(0,0,0,.18); }
+.auth-box h3 { text-align:center; font-size:18px; margin-bottom:20px; color:#333; }
+.auth-box .auth-tabs { display:flex; margin-bottom:20px; border-bottom:2px solid #eee; }
+.auth-box .auth-tab { flex:1; text-align:center; padding:8px; cursor:pointer; font-size:14px; color:#999; border-bottom:2px solid transparent; margin-bottom:-2px; transition:.2s; }
+.auth-box .auth-tab.active { color:#667eea; border-bottom-color:#667eea; font-weight:600; }
+.auth-box input { width:100%; padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-size:13px; margin-bottom:12px; }
+.auth-box input:focus { outline:none; border-color:#667eea; }
+.auth-box .auth-submit { width:100%; padding:10px; border:none; border-radius:8px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; font-size:14px; cursor:pointer; font-weight:500; }
+.auth-box .auth-submit:hover { opacity:.9; }
+.auth-box .auth-submit:disabled { opacity:.5; cursor:not-allowed; }
+.auth-box .auth-error { color:#e74c3c; font-size:12px; text-align:center; margin-bottom:8px; min-height:18px; }
+.auth-box .auth-close { position:absolute; top:12px; right:16px; background:none; border:none; font-size:20px; cursor:pointer; color:#aaa; }
+
+/* Template editor modal */
+.tpl-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.45); z-index:1050; justify-content:center; align-items:center; }
+.tpl-modal.show { display:flex; }
+.tpl-box { background:#fff; border-radius:14px; width:900px; max-width:94vw; max-height:88vh; overflow:hidden; box-shadow:0 8px 40px rgba(0,0,0,.18); display:flex; flex-direction:column; }
+.tpl-header { padding:16px 22px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+.tpl-header h3 { font-size:16px; color:#333; }
+.tpl-header .tpl-actions { display:flex; gap:8px; align-items:center; }
+.tpl-body { flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.tpl-body textarea { flex:1; width:100%; border:none; padding:18px 22px; font-family:'Menlo','Consolas','Courier New',monospace; font-size:13px; line-height:1.6; resize:none; outline:none; color:#333; background:#fafbfc; }
+.tpl-footer { padding:12px 22px; border-top:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+.tpl-footer .tpl-status { font-size:12px; color:#999; }
+.tpl-footer .tpl-btns { display:flex; gap:8px; }
+
+/* Guest edit hint */
+.guest-hint { background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:8px 16px; margin-bottom:12px; font-size:12px; color:#f57f17; text-align:center; display:none; }
+.guest-hint a { color:#667eea; cursor:pointer; text-decoration:underline; }
+
 /* Responsive */
 @media (max-width:768px) {
   .container { padding:10px; }
@@ -158,6 +199,14 @@ a.site-link:hover, a.tool-link:hover { text-decoration:underline; }
 </head>
 <body>
 <div class="container">
+  <!-- Auth bar -->
+  <div class="auth-bar" id="authBar">
+    <span class="user-info" id="userInfo" style="display:none"></span>
+    <button id="btnLogin" class="btn-primary" onclick="showAuthModal()">登录 / 注册</button>
+    <button id="btnLogout" style="display:none" onclick="doLogout()">退出</button>
+  </div>
+  <div class="guest-hint" id="guestHint">未登录状态下的修改仅保存在当前浏览器。<a onclick="showAuthModal()">登录</a>后数据将同步到云端，在任何设备上都能使用。</div>
+
   <header>
     <h1>VELA DocForge</h1>
     <p>AI产品经理 &middot; 从0到1全流程文档工作台</p>
@@ -217,9 +266,50 @@ a.site-link:hover, a.tool-link:hover { text-decoration:underline; }
 <div class="popup-overlay" id="popupOverlay" onclick="closePopup()"></div>
 <div class="popup-box" id="popupBox" style="display:none;"></div>
 
+<!-- Auth modal -->
+<div class="auth-modal" id="authModal">
+  <div class="auth-box" style="position:relative">
+    <button class="auth-close" onclick="hideAuthModal()">&times;</button>
+    <h3>VELA DocForge</h3>
+    <div class="auth-tabs">
+      <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">登录</div>
+      <div class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">注册</div>
+    </div>
+    <div class="auth-error" id="authError"></div>
+    <input type="email" id="authEmail" placeholder="邮箱地址">
+    <input type="password" id="authPassword" placeholder="密码（至少6位）">
+    <button class="auth-submit" id="authSubmit" onclick="doAuth()">登录</button>
+  </div>
+</div>
+
+<!-- Template editor modal -->
+<div class="tpl-modal" id="tplModal">
+  <div class="tpl-box">
+    <div class="tpl-header">
+      <h3 id="tplTitle">模板编辑器</h3>
+      <div class="tpl-actions">
+        <button class="btn-cancel" onclick="closeTplModal()">关闭</button>
+      </div>
+    </div>
+    <div class="tpl-body">
+      <textarea id="tplEditor" spellcheck="false"></textarea>
+    </div>
+    <div class="tpl-footer">
+      <span class="tpl-status" id="tplStatus"></span>
+      <div class="tpl-btns">
+        <button class="btn-cancel" onclick="resetTemplate()">恢复默认</button>
+        <button class="btn-save" onclick="saveTemplate()">保存修改</button>
+        <button class="btn-cancel" style="background:#fee;color:#e74c3c" onclick="deleteTemplate()">删除模板</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
+<!-- Supabase SDK -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <script>
 // ======= Data =======
 const PHASES = [
@@ -1527,38 +1617,193 @@ const DOCS = [
 const COL_NAMES = { support:'补充支撑文档', sites:'数据/报告网站', tools:'推荐工具', models:'推荐模型' };
 const COL_ICONS = { support:'\uD83D\uDCCE', sites:'\uD83C\uDF10', tools:'\uD83D\uDEE0\uFE0F', models:'\uD83E\uDD16' };
 
+// ======= Supabase =======
+const SUPABASE_URL = 'https://zycouechqtuvfohsvfmr.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5Y291ZWNocXR1dmZvaHN2Zm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NjM2MzAsImV4cCI6MjA5MTEzOTYzMH0.xegonQgs02E0UOV7MEZ2Xzpv4cEy_r0qEGNSMmknfx0';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+let currentUser = null;
+let cloudData = {}; // cached cloud data
+
 // ======= State =======
 let currentPhase = 'all';
 let currentEditCol = null;
 let editBuffer = {};
-let popupState = { docIdx:null, col:null }; // track current popup context
-let dragState = { fromIdx:null }; // drag reorder state
+let popupState = { docIdx:null, col:null };
+let dragState = { fromIdx:null };
+let currentTplIdx = null; // for template editor
 
-// ======= LocalStorage helpers =======
-function lsKey(docIdx, col) { return 'aipm_' + col + '_' + docIdx; }
-function lsGet(docIdx, col) { const v = localStorage.getItem(lsKey(docIdx, col)); return v ? JSON.parse(v) : null; }
-function lsSet(docIdx, col, val) { localStorage.setItem(lsKey(docIdx, col), JSON.stringify(val)); }
+// ======= Auth UI =======
+let authMode = 'login';
+
+function showAuthModal() {
+  document.getElementById('authModal').classList.add('show');
+  document.getElementById('authError').textContent = '';
+  document.getElementById('authEmail').value = '';
+  document.getElementById('authPassword').value = '';
+  document.getElementById('authEmail').focus();
+}
+function hideAuthModal() {
+  document.getElementById('authModal').classList.remove('show');
+}
+function switchAuthTab(mode) {
+  authMode = mode;
+  document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
+  document.getElementById('tabRegister').classList.toggle('active', mode === 'register');
+  document.getElementById('authSubmit').textContent = mode === 'login' ? '登录' : '注册';
+  document.getElementById('authError').textContent = '';
+}
+async function doAuth() {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authError');
+  const btn = document.getElementById('authSubmit');
+  if (!email || !password) { errEl.textContent = '请填写邮箱和密码'; return; }
+  if (password.length < 6) { errEl.textContent = '密码至少6位'; return; }
+  btn.disabled = true;
+  btn.textContent = '处理中...';
+  try {
+    let result;
+    if (authMode === 'login') {
+      result = await supabase.auth.signInWithPassword({ email, password });
+    } else {
+      result = await supabase.auth.signUp({ email, password });
+    }
+    if (result.error) {
+      errEl.textContent = result.error.message;
+    } else {
+      hideAuthModal();
+      if (authMode === 'register') {
+        showToast('注册成功！如需验证邮箱请查看收件箱');
+      } else {
+        showToast('登录成功');
+      }
+      await onAuthStateChange(result.data.user);
+    }
+  } catch(e) {
+    errEl.textContent = e.message || '操作失败';
+  }
+  btn.disabled = false;
+  btn.textContent = authMode === 'login' ? '登录' : '注册';
+}
+async function doLogout() {
+  await supabase.auth.signOut();
+  currentUser = null;
+  cloudData = {};
+  updateAuthUI();
+  render();
+  showToast('已退出登录');
+}
+function updateAuthUI() {
+  const info = document.getElementById('userInfo');
+  const btnLogin = document.getElementById('btnLogin');
+  const btnLogout = document.getElementById('btnLogout');
+  const hint = document.getElementById('guestHint');
+  if (currentUser) {
+    info.style.display = '';
+    info.textContent = '\uD83D\uDC64 ' + (currentUser.email || '用户');
+    btnLogin.style.display = 'none';
+    btnLogout.style.display = '';
+    hint.style.display = 'none';
+  } else {
+    info.style.display = 'none';
+    btnLogin.style.display = '';
+    btnLogout.style.display = 'none';
+    hint.style.display = 'block';
+  }
+}
+async function onAuthStateChange(user) {
+  currentUser = user;
+  updateAuthUI();
+  if (user) {
+    await loadCloudData();
+    render();
+  }
+}
+
+// ======= Cloud Data (Supabase) =======
+async function loadCloudData() {
+  if (!currentUser) return;
+  const { data } = await supabase.from('docforge_user_data').select('data_key,data_value').eq('user_id', currentUser.id);
+  cloudData = {};
+  if (data) data.forEach(row => { cloudData[row.data_key] = row.data_value; });
+}
+
+async function saveToCloud(key, value) {
+  if (!currentUser) return;
+  cloudData[key] = value;
+  await supabase.from('docforge_user_data').upsert({
+    user_id: currentUser.id,
+    data_key: key,
+    data_value: value,
+    updated_at: new Date().toISOString()
+  }, { onConflict: 'user_id,data_key' });
+}
+
+async function deleteFromCloud(key) {
+  if (!currentUser) return;
+  delete cloudData[key];
+  await supabase.from('docforge_user_data').delete().eq('user_id', currentUser.id).eq('data_key', key);
+}
+
+// ======= Storage helpers (localStorage + cloud) =======
+function storageKey(docIdx, col) { return col + '_' + docIdx; }
+
+function getItems(docIdx, col) {
+  const key = storageKey(docIdx, col);
+  // Cloud data takes priority when logged in
+  if (currentUser && cloudData[key] !== undefined) return JSON.parse(JSON.stringify(cloudData[key]));
+  // Fallback to localStorage
+  const ls = localStorage.getItem('aipm_' + key);
+  if (ls) return JSON.parse(ls);
+  // Default from DOCS
+  return DOCS[docIdx][col] ? JSON.parse(JSON.stringify(DOCS[docIdx][col])) : [];
+}
+
+function saveItems(docIdx, col, items) {
+  const key = storageKey(docIdx, col);
+  localStorage.setItem('aipm_' + key, JSON.stringify(items));
+  if (currentUser) saveToCloud(key, items);
+}
 
 function getAttachments(docIdx) {
-  const raw = localStorage.getItem('aipm_attach_' + docIdx);
+  const key = 'attach_' + docIdx;
+  if (currentUser && cloudData[key] !== undefined) return JSON.parse(JSON.stringify(cloudData[key]));
+  const raw = localStorage.getItem('aipm_' + key);
   return raw ? JSON.parse(raw) : [];
 }
 function setAttachments(docIdx, list) {
-  localStorage.setItem('aipm_attach_' + docIdx, JSON.stringify(list));
+  const key = 'attach_' + docIdx;
+  localStorage.setItem('aipm_' + key, JSON.stringify(list));
+  if (currentUser) saveToCloud(key, list);
 }
 
-function getItems(docIdx, col) {
-  const saved = lsGet(docIdx, col);
-  return saved !== null ? saved : DOCS[docIdx][col];
-}
-
-// API config storage
 function getApiConfig(docIdx, modelName) {
-  const raw = localStorage.getItem('aipm_api_' + docIdx + '_' + modelName);
+  const key = 'api_' + docIdx + '_' + modelName;
+  if (currentUser && cloudData[key] !== undefined) return cloudData[key];
+  const raw = localStorage.getItem('aipm_' + key);
   return raw ? JSON.parse(raw) : { apiKey:'', endpoint:'' };
 }
 function setApiConfig(docIdx, modelName, config) {
-  localStorage.setItem('aipm_api_' + docIdx + '_' + modelName, JSON.stringify(config));
+  const key = 'api_' + docIdx + '_' + modelName;
+  localStorage.setItem('aipm_' + key, JSON.stringify(config));
+  if (currentUser) saveToCloud(key, config);
+}
+
+function getTemplateContent(docIdx) {
+  const key = 'tpl_' + docIdx;
+  if (currentUser && cloudData[key] !== undefined) return cloudData[key];
+  const raw = localStorage.getItem('aipm_' + key);
+  return raw ? JSON.parse(raw) : null;
+}
+function saveTemplateContent(docIdx, content) {
+  const key = 'tpl_' + docIdx;
+  localStorage.setItem('aipm_' + key, JSON.stringify(content));
+  if (currentUser) saveToCloud(key, content);
+}
+function deleteTemplateContent(docIdx) {
+  const key = 'tpl_' + docIdx;
+  localStorage.removeItem('aipm_' + key);
+  if (currentUser) deleteFromCloud(key);
 }
 
 // ======= Display name (strip prefix numbers) =======
@@ -1591,14 +1836,14 @@ function render() {
     const rowClass = doc.highlight ? ' class="row-highlight"' : '';
     html += '<tr' + rowClass + ' data-idx="' + idx + '" data-phase="' + doc.phase + '">';
 
-    // Col 1: Name
-    html += '<td style="font-weight:600"><a class="tpl-link" href="' + doc.tplFile + '" style="font-size:13px;font-weight:600">' + displayName(doc.name) + '</a></td>';
+    // Col 1: Name (click opens template editor)
+    html += '<td style="font-weight:600"><a class="tpl-link" href="javascript:void(0)" onclick="openTplEditor(' + idx + ')" style="font-size:13px;font-weight:600">' + displayName(doc.name) + '</a></td>';
 
-    // Col 2: Template file
-    html += '<td><a class="tpl-link" href="' + doc.tplFile + '">' + doc.name.replace(/^\d{2}_/, '') + '.md</a></td>';
+    // Col 2: Template file (click opens template editor)
+    html += '<td><a class="tpl-link" href="javascript:void(0)" onclick="openTplEditor(' + idx + ')">' + displayName(doc.name) + '.md</a></td>';
 
-    // Col 3: Support materials (show 3 + more)
-    html += '<td>' + renderChipList(idx, 'support') + '</td>';
+    // Col 3: Support materials (plain text chips, always "更多")
+    html += '<td>' + renderChipList(idx) + '</td>';
 
     // Col 4: Sites (show 3 + more)
     html += '<td>' + renderLinkList(idx, 'sites', 'site-link') + '</td>';
@@ -1606,7 +1851,7 @@ function render() {
     // Col 5: Tools (show 3 + more)
     html += '<td>' + renderLinkList(idx, 'tools', 'tool-link') + '</td>';
 
-    // Col 6: Models (show 3 + more, sorted by tier)
+    // Col 6: Models (show 3 + more)
     html += '<td>' + renderModelList(idx) + '</td>';
 
     // Col 7: Attachments
@@ -1628,21 +1873,20 @@ function render() {
   tbody.innerHTML = html;
 }
 
-function renderChipList(docIdx, col) {
-  const items = getItems(docIdx, col);
+// Support docs: plain text (not links), always show "更多"
+function renderChipList(docIdx) {
+  const items = getItems(docIdx, 'support');
   const show = items.slice(0, 3);
   let html = '';
   show.forEach(s => {
-    html += '<span class="support-chip"><a href="' + escHtml(s.url) + '">' + escHtml(s.name) + '</a></span> ';
+    html += '<span class="support-chip">' + escHtml(s.name) + '</span> ';
   });
-  if (items.length > 3) {
-    html += '<span class="more-btn" onclick="openEditablePopup(event,' + docIdx + ',\'' + col + '\')">+' + (items.length - 3) + ' \u66F4\u591A</span>';
-  } else if (items.length > 0) {
-    html += '<span class="more-btn" onclick="openEditablePopup(event,' + docIdx + ',\'' + col + '\')" style="margin-left:2px">\u7F16\u8F91</span>';
-  }
+  const extra = items.length > 3 ? '+' + (items.length - 3) + ' ' : '';
+  html += '<span class="more-btn" onclick="openEditablePopup(event,' + docIdx + ',\'support\')">' + extra + '\u66F4\u591A</span>';
   return html;
 }
 
+// Sites/Tools: links, 3 + more
 function renderLinkList(docIdx, col, linkClass) {
   const items = getItems(docIdx, col);
   const show = items.slice(0, 3);
@@ -1650,12 +1894,12 @@ function renderLinkList(docIdx, col, linkClass) {
   show.forEach(item => {
     html += '<a class="' + linkClass + '" href="' + escHtml(item.url) + '" target="_blank">' + escHtml(item.name) + '</a><br>';
   });
-  if (items.length > 3) {
-    html += '<span class="more-btn" onclick="openEditablePopup(event,' + docIdx + ',\'' + col + '\')">+' + (items.length - 3) + ' \u66F4\u591A</span>';
-  }
+  const extra = items.length > 3 ? '+' + (items.length - 3) + ' ' : '';
+  html += '<span class="more-btn" onclick="openEditablePopup(event,' + docIdx + ',\'' + col + '\')">' + extra + '\u66F4\u591A</span>';
   return html;
 }
 
+// Models: badges, 3 + more
 function renderModelList(docIdx) {
   const models = getItems(docIdx, 'models').slice().sort((a,b) => a.tier - b.tier);
   const show = models.slice(0, 3);
@@ -1665,9 +1909,8 @@ function renderModelList(docIdx) {
     const prefix = m.tier === 1 ? '\u2B50 ' : '';
     html += '<a class="model-badge ' + tierClass + '" href="' + escHtml(m.url) + '" target="_blank">' + prefix + escHtml(m.name) + '</a> ';
   });
-  if (models.length > 3) {
-    html += '<span class="more-btn" onclick="openEditablePopup(event,' + docIdx + ',\'models\')">+' + (models.length - 3) + ' \u66F4\u591A</span>';
-  }
+  const extra = models.length > 3 ? '+' + (models.length - 3) + ' ' : '';
+  html += '<span class="more-btn" onclick="openEditablePopup(event,' + docIdx + ',\'models\')">' + extra + '\u66F4\u591A</span>';
   return html;
 }
 
@@ -1678,6 +1921,73 @@ document.getElementById('toolbar').addEventListener('click', e => {
   e.target.classList.add('active');
   currentPhase = e.target.dataset.phase;
   render();
+});
+
+// ======= Template Editor =======
+async function openTplEditor(docIdx) {
+  currentTplIdx = docIdx;
+  const doc = DOCS[docIdx];
+  document.getElementById('tplTitle').textContent = '\uD83D\uDCDD ' + displayName(doc.name) + '.md';
+  const editor = document.getElementById('tplEditor');
+  const status = document.getElementById('tplStatus');
+
+  // Check for saved version
+  const saved = getTemplateContent(docIdx);
+  if (saved) {
+    editor.value = saved;
+    status.textContent = '\u2705 \u5DF2\u52A0\u8F7D\u7528\u6237\u4FEE\u6539\u7248\u672C';
+  } else {
+    // Fetch original .md file
+    editor.value = '\u52A0\u8F7D\u4E2D...';
+    status.textContent = '\u52A0\u8F7D\u539F\u59CB\u6A21\u677F...';
+    try {
+      const resp = await fetch(doc.tplFile);
+      if (resp.ok) {
+        editor.value = await resp.text();
+        status.textContent = '\u{1F4C4} \u539F\u59CB\u6A21\u677F (\u672A\u4FEE\u6539)';
+      } else {
+        editor.value = '# ' + displayName(doc.name) + '\n\n\u65E0\u6CD5\u52A0\u8F7D\u6A21\u677F\u6587\u4EF6\uFF0C\u60A8\u53EF\u4EE5\u5728\u6B64\u7F16\u5199\u5185\u5BB9\u3002';
+        status.textContent = '\u26A0\uFE0F \u6A21\u677F\u6587\u4EF6\u672A\u627E\u5230\uFF0C\u53EF\u81EA\u7531\u7F16\u5199';
+      }
+    } catch(e) {
+      editor.value = '# ' + displayName(doc.name) + '\n\n\u53EF\u5728\u6B64\u7F16\u5199\u6A21\u677F\u5185\u5BB9\u3002';
+      status.textContent = '\u79BB\u7EBF\u6A21\u5F0F\uFF0C\u53EF\u81EA\u7531\u7F16\u5199';
+    }
+  }
+  document.getElementById('tplModal').classList.add('show');
+}
+
+function closeTplModal() {
+  document.getElementById('tplModal').classList.remove('show');
+  currentTplIdx = null;
+}
+
+function saveTemplate() {
+  if (currentTplIdx === null) return;
+  const content = document.getElementById('tplEditor').value;
+  saveTemplateContent(currentTplIdx, content);
+  document.getElementById('tplStatus').textContent = '\u2705 \u5DF2\u4FDD\u5B58';
+  showToast('\u6A21\u677F\u5DF2\u4FDD\u5B58');
+}
+
+function resetTemplate() {
+  if (currentTplIdx === null) return;
+  deleteTemplateContent(currentTplIdx);
+  showToast('\u5DF2\u6062\u590D\u9ED8\u8BA4\u6A21\u677F');
+  openTplEditor(currentTplIdx);
+}
+
+function deleteTemplate() {
+  if (currentTplIdx === null) return;
+  if (!confirm('\u786E\u5B9A\u8981\u5220\u9664\u8FD9\u4E2A\u6A21\u677F\u7684\u81EA\u5B9A\u4E49\u5185\u5BB9\u5417\uFF1F\u5220\u9664\u540E\u5C06\u6062\u590D\u4E3A\u9ED8\u8BA4\u6A21\u677F\u3002')) return;
+  deleteTemplateContent(currentTplIdx);
+  closeTplModal();
+  showToast('\u6A21\u677F\u5DF2\u5220\u9664\uFF0C\u5DF2\u6062\u590D\u9ED8\u8BA4');
+}
+
+// Click tpl-modal overlay to close
+document.getElementById('tplModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('tplModal')) closeTplModal();
 });
 
 // ======= Popup System =======
@@ -1699,12 +2009,11 @@ function closePopup() {
   popupState = { docIdx:null, col:null };
 }
 
-// ======= Unified Editable Popup (sites/tools/support/models) =======
+// ======= Unified Editable Popup =======
 function openEditablePopup(ev, docIdx, col) {
   ev.stopPropagation();
   popupState = { docIdx, col };
   const items = JSON.parse(JSON.stringify(getItems(docIdx, col)));
-  // For models, sort by tier
   if (col === 'models') items.sort((a,b) => a.tier - b.tier);
 
   const box = document.getElementById('popupBox');
@@ -1719,7 +2028,9 @@ function openEditablePopup(ev, docIdx, col) {
   // Add form footer
   html += '<div class="popup-footer"><div class="add-row">';
   html += '<input id="popupAddName" placeholder="\u540D\u79F0" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px">';
-  html += '<input id="popupAddUrl" placeholder="URL" style="flex:1.5;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px">';
+  if (col !== 'support') {
+    html += '<input id="popupAddUrl" placeholder="URL" style="flex:1.5;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px">';
+  }
   if (col === 'models') {
     html += '<select id="popupAddTier" style="padding:6px;border:1px solid #ddd;border-radius:6px;font-size:11px"><option value="1">\u2B50\u6700\u4F73</option><option value="2">\u9002\u7528</option><option value="3">\u5907\u9009</option></select>';
   }
@@ -1736,23 +2047,21 @@ function openEditablePopup(ev, docIdx, col) {
 function renderPopupItems(items, col, docIdx) {
   let html = '';
   if (col === 'models') {
-    // Group by tier with section headers
     const tiers = [
       { id:1, label:'\u2B50 \u6700\u4F73\u63A8\u8350', color:'#f59e0b' },
-      { id:2, label:'\u{1F7E6} \u9002\u7528', color:'#3b82f6' },
+      { id:2, label:'\uD83D\uDD35 \u9002\u7528', color:'#3b82f6' },
       { id:3, label:'\u26AA \u5907\u9009', color:'#9ca3af' }
     ];
     tiers.forEach(tier => {
       const tierItems = items.filter(m => m.tier === tier.id);
       if (tierItems.length === 0) return;
       html += '<div class="popup-section-title"><span style="color:' + tier.color + '">\u25CF</span> ' + tier.label + ' (' + tierItems.length + ')</div>';
-      tierItems.forEach((item, i) => {
+      tierItems.forEach(item => {
         const realIdx = items.indexOf(item);
         html += renderDragItem(item, realIdx, col, docIdx);
       });
     });
   } else {
-    // Simple list with section title
     const sectionName = col === 'sites' ? '\u7F51\u7AD9\u5217\u8868' : col === 'tools' ? '\u5DE5\u5177\u5217\u8868' : '\u652F\u6491\u6587\u6863';
     html += '<div class="popup-section-title">' + sectionName + ' (' + items.length + ')</div>';
     items.forEach((item, i) => {
@@ -1763,12 +2072,13 @@ function renderPopupItems(items, col, docIdx) {
 }
 
 function renderDragItem(item, idx, col, docIdx) {
-  const domain = item.url && item.url !== '#' ? item.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : '';
   let html = '<div class="item-card" draggable="true" data-idx="' + idx + '">';
   html += '<span class="drag-handle" title="\u62D6\u62FD\u6392\u5E8F">\u2630</span>';
   if (col === 'support') {
-    html += '<a href="' + escHtml(item.url) + '" style="color:#667eea;font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(item.name) + '</a>';
+    // Support docs: plain text, not a link
+    html += '<span style="font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#555">' + escHtml(item.name) + '</span>';
   } else {
+    const domain = item.url && item.url !== '#' ? item.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : '';
     html += '<a href="' + escHtml(item.url) + '" target="_blank" style="color:inherit;text-decoration:none;font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(item.name) + '</a>';
     if (domain) html += '<span style="font-size:10px;color:#aaa;margin:0 6px;flex-shrink:0">' + escHtml(domain) + '</span>';
   }
@@ -1784,7 +2094,7 @@ function renderDragItem(item, idx, col, docIdx) {
     const apiConf = getApiConfig(docIdx, item.name);
     html += '<label>API Key</label><input id="apiKey_' + idx + '" value="' + escHtml(apiConf.apiKey) + '" placeholder="\u8F93\u5165API Key...">';
     html += '<label>API Endpoint</label><input id="apiEndpoint_' + idx + '" value="' + escHtml(apiConf.endpoint) + '" placeholder="https://api.example.com/v1">';
-    html += '<button class="api-save-btn" onclick="saveApiConfig(' + idx + ',event)">\u4FDD\u5B58\u914D\u7F6E</button>';
+    html += '<button class="api-save-btn" onclick="saveApiConfigFromPopup(' + idx + ',event)">\u4FDD\u5B58\u914D\u7F6E</button>';
     html += '</div>';
   }
   return html;
@@ -1796,7 +2106,7 @@ function toggleApiPanel(idx, ev) {
   if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
 }
 
-function saveApiConfig(idx, ev) {
+function saveApiConfigFromPopup(idx, ev) {
   ev.stopPropagation();
   const { docIdx, col } = popupState;
   const items = JSON.parse(JSON.stringify(getItems(docIdx, col)));
@@ -1807,7 +2117,6 @@ function saveApiConfig(idx, ev) {
   const endpoint = document.getElementById('apiEndpoint_' + idx).value.trim();
   setApiConfig(docIdx, item.name, { apiKey, endpoint });
   showToast('API\u914D\u7F6E\u5DF2\u4FDD\u5B58: ' + item.name);
-  // Update button style
   const panel = document.getElementById('apiPanel_' + idx);
   if (panel) panel.style.display = 'none';
   refreshPopupBody();
@@ -1819,8 +2128,7 @@ function removePopupItem(idx, ev) {
   const items = JSON.parse(JSON.stringify(getItems(docIdx, col)));
   if (col === 'models') items.sort((a,b) => a.tier - b.tier);
   items.splice(idx, 1);
-  // For models, restore original order before saving
-  lsSet(docIdx, col, items);
+  saveItems(docIdx, col, items);
   render();
   refreshPopupBody();
   showToast('\u5DF2\u5220\u9664');
@@ -1829,21 +2137,25 @@ function removePopupItem(idx, ev) {
 function addPopupItem() {
   const { docIdx, col } = popupState;
   const nameInput = document.getElementById('popupAddName');
-  const urlInput = document.getElementById('popupAddUrl');
   const name = nameInput.value.trim();
-  const url = urlInput.value.trim();
   if (!name) { nameInput.focus(); return; }
 
   const items = JSON.parse(JSON.stringify(getItems(docIdx, col)));
-  const item = { name, url: url || '#' };
+  const item = { name };
+  if (col === 'support') {
+    item.url = '';
+  } else {
+    const urlInput = document.getElementById('popupAddUrl');
+    item.url = urlInput.value.trim() || '#';
+    urlInput.value = '';
+  }
   if (col === 'models') {
     const tierSelect = document.getElementById('popupAddTier');
     item.tier = parseInt(tierSelect.value);
   }
   items.push(item);
-  lsSet(docIdx, col, items);
+  saveItems(docIdx, col, items);
   nameInput.value = '';
-  urlInput.value = '';
   render();
   refreshPopupBody();
   showToast('\u5DF2\u6DFB\u52A0: ' + name);
@@ -1860,7 +2172,7 @@ function refreshPopupBody() {
   initDragHandlers();
 }
 
-// ======= Drag & Drop Reorder =======
+// ======= Drag & Drop =======
 function initDragHandlers() {
   const body = document.getElementById('editPopupBody');
   if (!body) return;
@@ -1873,42 +2185,32 @@ function initDragHandlers() {
     card.addEventListener('dragend', onDragEnd);
   });
 }
-
 function onDragStart(e) {
   dragState.fromIdx = parseInt(e.currentTarget.dataset.idx);
   e.currentTarget.classList.add('dragging');
   e.dataTransfer.effectAllowed = 'move';
 }
-
 function onDragOver(e) {
   e.preventDefault();
   e.dataTransfer.dropEffect = 'move';
   e.currentTarget.classList.add('drag-over');
 }
-
-function onDragLeave(e) {
-  e.currentTarget.classList.remove('drag-over');
-}
-
+function onDragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
 function onDrop(e) {
   e.preventDefault();
   e.currentTarget.classList.remove('drag-over');
   const toIdx = parseInt(e.currentTarget.dataset.idx);
   const fromIdx = dragState.fromIdx;
   if (fromIdx === toIdx || fromIdx === null) return;
-
   const { docIdx, col } = popupState;
   const items = JSON.parse(JSON.stringify(getItems(docIdx, col)));
   if (col === 'models') items.sort((a,b) => a.tier - b.tier);
-
-  // Move item
   const [moved] = items.splice(fromIdx, 1);
   items.splice(toIdx, 0, moved);
-  lsSet(docIdx, col, items);
+  saveItems(docIdx, col, items);
   render();
   refreshPopupBody();
 }
-
 function onDragEnd(e) {
   e.currentTarget.classList.remove('dragging');
   dragState.fromIdx = null;
@@ -1989,12 +2291,10 @@ function handlePopupFileSelect(ev, docIdx) {
 function openColModal(col) {
   currentEditCol = col;
   document.getElementById('colModalTitle').textContent = '\u7F16\u8F91\u5217: ' + COL_NAMES[col];
-
   editBuffer = {};
   DOCS.forEach((doc, idx) => {
     editBuffer[idx] = JSON.parse(JSON.stringify(getItems(idx, col)));
   });
-
   renderModalBody(col);
   document.getElementById('colModal').classList.add('show');
 }
@@ -2002,7 +2302,6 @@ function openColModal(col) {
 function renderModalBody(col) {
   const body = document.getElementById('colModalBody');
   let html = '';
-
   DOCS.forEach((doc, idx) => {
     const items = editBuffer[idx] || [];
     if (col !== 'models') items.sort((a,b) => a.name.localeCompare(b.name, 'zh-CN'));
@@ -2010,30 +2309,30 @@ function renderModalBody(col) {
     html += '<div class="modal-row">';
     html += '<div class="modal-row-label">' + displayName(doc.name) + '</div>';
     html += '<div class="modal-row-content">';
-
     html += '<div class="modal-item-chips">';
     items.forEach((item, i) => {
       if (col === 'models') {
         const tierLabel = item.tier === 1 ? '\u2B50\u6700\u63A8\u8350' : item.tier === 2 ? '\u9002\u7528' : '\u5907\u9009';
-        html += '<span class="modal-chip"><a href="' + escHtml(item.url) + '" target="_blank">' + escHtml(item.name) + '</a><span style="font-size:10px;color:#999">(' + tierLabel + ')</span><button class="chip-del" onclick="removeModalItem(' + idx + ',' + i + ')">&times;</button></span>';
+        html += '<span class="modal-chip"><a href="' + escHtml(item.url || '#') + '" target="_blank">' + escHtml(item.name) + '</a><span style="font-size:10px;color:#999">(' + tierLabel + ')</span><button class="chip-del" onclick="removeModalItem(' + idx + ',' + i + ')">&times;</button></span>';
+      } else if (col === 'support') {
+        html += '<span class="modal-chip">' + escHtml(item.name) + '<button class="chip-del" onclick="removeModalItem(' + idx + ',' + i + ')">&times;</button></span>';
       } else {
         html += '<span class="modal-chip"><a href="' + escHtml(item.url) + '" target="_blank">' + escHtml(item.name) + '</a><button class="chip-del" onclick="removeModalItem(' + idx + ',' + i + ')">&times;</button></span>';
       }
     });
     html += '</div>';
-
     html += '<div class="modal-add-row">';
     html += '<input class="name-input" placeholder="\u540D\u79F0" id="addName_' + idx + '">';
-    html += '<input class="url-input" placeholder="URL" id="addUrl_' + idx + '">';
+    if (col !== 'support') {
+      html += '<input class="url-input" placeholder="URL" id="addUrl_' + idx + '">';
+    }
     if (col === 'models') {
       html += '<select id="addTier_' + idx + '" style="padding:4px;border:1px solid #ddd;border-radius:4px;font-size:11px"><option value="1">\u2B50\u6700\u63A8\u8350</option><option value="2">\u9002\u7528</option><option value="3">\u5907\u9009</option></select>';
     }
     html += '<button onclick="addModalItem(' + idx + ')">\u6DFB\u52A0</button>';
     html += '</div>';
-
     html += '</div></div>';
   });
-
   body.innerHTML = html;
 }
 
@@ -2044,20 +2343,22 @@ function removeModalItem(docIdx, itemIdx) {
 
 function addModalItem(docIdx) {
   const nameInput = document.getElementById('addName_' + docIdx);
-  const urlInput = document.getElementById('addUrl_' + docIdx);
   const name = nameInput.value.trim();
-  const url = urlInput.value.trim();
   if (!name) { nameInput.focus(); return; }
-
-  const item = { name, url: url || '#' };
+  const item = { name };
+  if (currentEditCol === 'support') {
+    item.url = '';
+  } else {
+    const urlInput = document.getElementById('addUrl_' + docIdx);
+    item.url = urlInput.value.trim() || '#';
+    urlInput.value = '';
+  }
   if (currentEditCol === 'models') {
     const tierSelect = document.getElementById('addTier_' + docIdx);
     item.tier = parseInt(tierSelect.value);
   }
-
   editBuffer[docIdx].push(item);
   nameInput.value = '';
-  urlInput.value = '';
   renderModalBody(currentEditCol);
 }
 
@@ -2069,7 +2370,7 @@ function closeColModal() {
 
 function saveColModal() {
   Object.keys(editBuffer).forEach(idx => {
-    lsSet(parseInt(idx), currentEditCol, editBuffer[idx]);
+    saveItems(parseInt(idx), currentEditCol, editBuffer[idx]);
   });
   closeColModal();
   render();
@@ -2089,7 +2390,27 @@ function showToast(msg) {
 }
 
 // ======= Init =======
-render();
+(async function init() {
+  // Check existing session
+  const { data: { session } } = await supabase.auth.getSession();
+  if (session && session.user) {
+    await onAuthStateChange(session.user);
+  } else {
+    updateAuthUI();
+  }
+  render();
+
+  // Listen for auth changes
+  supabase.auth.onAuthStateChange((event, session) => {
+    if (event === 'SIGNED_OUT') {
+      currentUser = null;
+      cloudData = {};
+      updateAuthUI();
+      render();
+    }
+  });
+})();
+
 </script>
 </body>
 </html>
