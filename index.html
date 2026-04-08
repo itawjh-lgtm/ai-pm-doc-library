@@ -308,8 +308,15 @@ a.site-link:hover, a.tool-link:hover { text-decoration:underline; }
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- Supabase SDK -->
+<!-- Supabase SDK (with fallback) -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+<script>
+if (!window.supabase) {
+  var s = document.createElement('script');
+  s.src = 'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js';
+  document.head.appendChild(s);
+}
+</script>
 <script>
 // ======= Data =======
 const PHASES = [
@@ -1620,7 +1627,12 @@ const COL_ICONS = { support:'\uD83D\uDCCE', sites:'\uD83C\uDF10', tools:'\uD83D\
 // ======= Supabase =======
 const SUPABASE_URL = 'https://zycouechqtuvfohsvfmr.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5Y291ZWNocXR1dmZvaHN2Zm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NjM2MzAsImV4cCI6MjA5MTEzOTYzMH0.xegonQgs02E0UOV7MEZ2Xzpv4cEy_r0qEGNSMmknfx0';
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+let supabase = null;
+try {
+  if (window.supabase && window.supabase.createClient) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  }
+} catch(e) { console.warn('Supabase SDK not available, using localStorage only'); }
 let currentUser = null;
 let cloudData = {}; // cached cloud data
 
@@ -1657,6 +1669,7 @@ async function doAuth() {
   const password = document.getElementById('authPassword').value;
   const errEl = document.getElementById('authError');
   const btn = document.getElementById('authSubmit');
+  if (!supabase) { errEl.textContent = '云端服务未连接，请刷新页面重试'; return; }
   if (!email || !password) { errEl.textContent = '请填写邮箱和密码'; return; }
   if (password.length < 6) { errEl.textContent = '密码至少6位'; return; }
   btn.disabled = true;
@@ -1673,7 +1686,7 @@ async function doAuth() {
     } else {
       hideAuthModal();
       if (authMode === 'register') {
-        showToast('注册成功！如需验证邮箱请查看收件箱');
+        showToast('注册成功！');
       } else {
         showToast('登录成功');
       }
@@ -1686,7 +1699,7 @@ async function doAuth() {
   btn.textContent = authMode === 'login' ? '登录' : '注册';
 }
 async function doLogout() {
-  await supabase.auth.signOut();
+  if (supabase) await supabase.auth.signOut();
   currentUser = null;
   cloudData = {};
   updateAuthUI();
@@ -1722,14 +1735,14 @@ async function onAuthStateChange(user) {
 
 // ======= Cloud Data (Supabase) =======
 async function loadCloudData() {
-  if (!currentUser) return;
+  if (!currentUser || !supabase) return;
   const { data } = await supabase.from('docforge_user_data').select('data_key,data_value').eq('user_id', currentUser.id);
   cloudData = {};
   if (data) data.forEach(row => { cloudData[row.data_key] = row.data_value; });
 }
 
 async function saveToCloud(key, value) {
-  if (!currentUser) return;
+  if (!currentUser || !supabase) return;
   cloudData[key] = value;
   await supabase.from('docforge_user_data').upsert({
     user_id: currentUser.id,
@@ -1740,7 +1753,7 @@ async function saveToCloud(key, value) {
 }
 
 async function deleteFromCloud(key) {
-  if (!currentUser) return;
+  if (!currentUser || !supabase) return;
   delete cloudData[key];
   await supabase.from('docforge_user_data').delete().eq('user_id', currentUser.id).eq('data_key', key);
 }
@@ -2391,24 +2404,30 @@ function showToast(msg) {
 
 // ======= Init =======
 (async function init() {
-  // Check existing session
-  const { data: { session } } = await supabase.auth.getSession();
-  if (session && session.user) {
-    await onAuthStateChange(session.user);
+  if (supabase) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && session.user) {
+        await onAuthStateChange(session.user);
+      } else {
+        updateAuthUI();
+      }
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT') {
+          currentUser = null;
+          cloudData = {};
+          updateAuthUI();
+          render();
+        }
+      });
+    } catch(e) {
+      console.warn('Supabase auth init failed:', e);
+      updateAuthUI();
+    }
   } else {
     updateAuthUI();
   }
   render();
-
-  // Listen for auth changes
-  supabase.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT') {
-      currentUser = null;
-      cloudData = {};
-      updateAuthUI();
-      render();
-    }
-  });
 })();
 
 </script>
