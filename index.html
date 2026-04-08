@@ -143,30 +143,6 @@ a.site-link:hover, a.tool-link:hover { text-decoration:underline; }
 .popup-footer .add-row { display:flex; gap:6px; flex-wrap:wrap; }
 .popup-footer .add-row select { padding:4px 6px; border:1px solid #ddd; border-radius:6px; font-size:11px; }
 
-/* Auth bar */
-.auth-bar { display:flex; justify-content:flex-end; align-items:center; gap:10px; padding:8px 0; }
-.auth-bar .user-info { font-size:13px; color:#667eea; font-weight:500; }
-.auth-bar button { padding:5px 16px; border:1px solid #ddd; border-radius:16px; background:#fff; cursor:pointer; font-size:12px; transition:all .2s; }
-.auth-bar button:hover { border-color:#667eea; color:#667eea; }
-.auth-bar .btn-primary { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border:none; }
-.auth-bar .btn-primary:hover { opacity:.9; }
-
-/* Auth modal */
-.auth-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.45); z-index:1100; justify-content:center; align-items:center; }
-.auth-modal.show { display:flex; }
-.auth-box { background:#fff; border-radius:14px; width:380px; max-width:92vw; padding:30px; box-shadow:0 8px 40px rgba(0,0,0,.18); }
-.auth-box h3 { text-align:center; font-size:18px; margin-bottom:20px; color:#333; }
-.auth-box .auth-tabs { display:flex; margin-bottom:20px; border-bottom:2px solid #eee; }
-.auth-box .auth-tab { flex:1; text-align:center; padding:8px; cursor:pointer; font-size:14px; color:#999; border-bottom:2px solid transparent; margin-bottom:-2px; transition:.2s; }
-.auth-box .auth-tab.active { color:#667eea; border-bottom-color:#667eea; font-weight:600; }
-.auth-box input { width:100%; padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-size:13px; margin-bottom:12px; }
-.auth-box input:focus { outline:none; border-color:#667eea; }
-.auth-box .auth-submit { width:100%; padding:10px; border:none; border-radius:8px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; font-size:14px; cursor:pointer; font-weight:500; }
-.auth-box .auth-submit:hover { opacity:.9; }
-.auth-box .auth-submit:disabled { opacity:.5; cursor:not-allowed; }
-.auth-box .auth-error { color:#e74c3c; font-size:12px; text-align:center; margin-bottom:8px; min-height:18px; }
-.auth-box .auth-close { position:absolute; top:12px; right:16px; background:none; border:none; font-size:20px; cursor:pointer; color:#aaa; }
-
 /* Template editor modal */
 .tpl-modal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.45); z-index:1050; justify-content:center; align-items:center; }
 .tpl-modal.show { display:flex; }
@@ -179,10 +155,6 @@ a.site-link:hover, a.tool-link:hover { text-decoration:underline; }
 .tpl-footer { padding:12px 22px; border-top:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
 .tpl-footer .tpl-status { font-size:12px; color:#999; }
 .tpl-footer .tpl-btns { display:flex; gap:8px; }
-
-/* Guest edit hint */
-.guest-hint { background:#fff8e1; border:1px solid #ffe082; border-radius:8px; padding:8px 16px; margin-bottom:12px; font-size:12px; color:#f57f17; text-align:center; display:none; }
-.guest-hint a { color:#667eea; cursor:pointer; text-decoration:underline; }
 
 /* Responsive */
 @media (max-width:768px) {
@@ -199,14 +171,6 @@ a.site-link:hover, a.tool-link:hover { text-decoration:underline; }
 </head>
 <body>
 <div class="container">
-  <!-- Auth bar -->
-  <div class="auth-bar" id="authBar">
-    <span class="user-info" id="userInfo" style="display:none"></span>
-    <button id="btnLogin" class="btn-primary" onclick="showAuthModal()">登录 / 注册</button>
-    <button id="btnLogout" style="display:none" onclick="doLogout()">退出</button>
-  </div>
-  <div class="guest-hint" id="guestHint">未登录状态下的修改仅保存在当前浏览器。<a onclick="showAuthModal()">登录</a>后数据将同步到云端，在任何设备上都能使用。</div>
-
   <header>
     <h1>VELA DocForge</h1>
     <p>AI产品经理 &middot; 从0到1全流程文档工作台</p>
@@ -266,22 +230,6 @@ a.site-link:hover, a.tool-link:hover { text-decoration:underline; }
 <div class="popup-overlay" id="popupOverlay" onclick="closePopup()"></div>
 <div class="popup-box" id="popupBox" style="display:none;"></div>
 
-<!-- Auth modal -->
-<div class="auth-modal" id="authModal">
-  <div class="auth-box" style="position:relative">
-    <button class="auth-close" onclick="hideAuthModal()">&times;</button>
-    <h3>VELA DocForge</h3>
-    <div class="auth-tabs">
-      <div class="auth-tab active" id="tabLogin" onclick="switchAuthTab('login')">登录</div>
-      <div class="auth-tab" id="tabRegister" onclick="switchAuthTab('register')">注册</div>
-    </div>
-    <div class="auth-error" id="authError"></div>
-    <input type="email" id="authEmail" placeholder="邮箱地址">
-    <input type="password" id="authPassword" placeholder="密码（至少6位）">
-    <button class="auth-submit" id="authSubmit" onclick="doAuth()">登录</button>
-  </div>
-</div>
-
 <!-- Template editor modal -->
 <div class="tpl-modal" id="tplModal">
   <div class="tpl-box">
@@ -308,8 +256,6 @@ a.site-link:hover, a.tool-link:hover { text-decoration:underline; }
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- Supabase SDK (local, no CDN dependency) -->
-<script src="supabase.min.js"></script>
 <script>
 // ======= Data =======
 const PHASES = [
@@ -1617,18 +1563,6 @@ const DOCS = [
 const COL_NAMES = { support:'补充支撑文档', sites:'数据/报告网站', tools:'推荐工具', models:'推荐模型' };
 const COL_ICONS = { support:'\uD83D\uDCCE', sites:'\uD83C\uDF10', tools:'\uD83D\uDEE0\uFE0F', models:'\uD83E\uDD16' };
 
-// ======= Supabase =======
-const SUPABASE_URL = 'https://zycouechqtuvfohsvfmr.supabase.co';
-const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5Y291ZWNocXR1dmZvaHN2Zm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NjM2MzAsImV4cCI6MjA5MTEzOTYzMH0.xegonQgs02E0UOV7MEZ2Xzpv4cEy_r0qEGNSMmknfx0';
-let supabase = null;
-try {
-  if (window.supabase && window.supabase.createClient) {
-    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-  }
-} catch(e) { console.warn('Supabase init failed:', e); }
-let currentUser = null;
-let cloudData = {}; // cached cloud data
-
 // ======= State =======
 let currentPhase = 'all';
 let currentEditCol = null;
@@ -1637,179 +1571,38 @@ let popupState = { docIdx:null, col:null };
 let dragState = { fromIdx:null };
 let currentTplIdx = null; // for template editor
 
-// ======= Auth UI =======
-let authMode = 'login';
-
-function showAuthModal() {
-  document.getElementById('authModal').classList.add('show');
-  document.getElementById('authError').textContent = '';
-  document.getElementById('authEmail').value = '';
-  document.getElementById('authPassword').value = '';
-  document.getElementById('authEmail').focus();
-}
-function hideAuthModal() {
-  document.getElementById('authModal').classList.remove('show');
-}
-function switchAuthTab(mode) {
-  authMode = mode;
-  document.getElementById('tabLogin').classList.toggle('active', mode === 'login');
-  document.getElementById('tabRegister').classList.toggle('active', mode === 'register');
-  document.getElementById('authSubmit').textContent = mode === 'login' ? '登录' : '注册';
-  document.getElementById('authError').textContent = '';
-}
-async function doAuth() {
-  const email = document.getElementById('authEmail').value.trim();
-  const password = document.getElementById('authPassword').value;
-  const errEl = document.getElementById('authError');
-  const btn = document.getElementById('authSubmit');
-  if (!supabase) { errEl.textContent = '云端服务未连接，请刷新页面重试'; return; }
-  if (!email || !password) { errEl.textContent = '请填写邮箱和密码'; return; }
-  if (password.length < 6) { errEl.textContent = '密码至少6位'; return; }
-  btn.disabled = true;
-  btn.textContent = '处理中...';
-  try {
-    let result;
-    if (authMode === 'login') {
-      result = await supabase.auth.signInWithPassword({ email, password });
-    } else {
-      result = await supabase.auth.signUp({ email, password });
-    }
-    if (result.error) {
-      errEl.textContent = result.error.message;
-    } else {
-      hideAuthModal();
-      if (authMode === 'register') {
-        showToast('注册成功！');
-      } else {
-        showToast('登录成功');
-      }
-      await onAuthStateChange(result.data.user);
-    }
-  } catch(e) {
-    errEl.textContent = e.message || '操作失败';
-  }
-  btn.disabled = false;
-  btn.textContent = authMode === 'login' ? '登录' : '注册';
-}
-async function doLogout() {
-  if (supabase) await supabase.auth.signOut();
-  currentUser = null;
-  cloudData = {};
-  updateAuthUI();
-  render();
-  showToast('已退出登录');
-}
-function updateAuthUI() {
-  const info = document.getElementById('userInfo');
-  const btnLogin = document.getElementById('btnLogin');
-  const btnLogout = document.getElementById('btnLogout');
-  const hint = document.getElementById('guestHint');
-  if (currentUser) {
-    info.style.display = '';
-    info.textContent = '\uD83D\uDC64 ' + (currentUser.email || '用户');
-    btnLogin.style.display = 'none';
-    btnLogout.style.display = '';
-    hint.style.display = 'none';
-  } else {
-    info.style.display = 'none';
-    btnLogin.style.display = '';
-    btnLogout.style.display = 'none';
-    hint.style.display = 'block';
-  }
-}
-async function onAuthStateChange(user) {
-  currentUser = user;
-  updateAuthUI();
-  if (user) {
-    await loadCloudData();
-    render();
-  }
-}
-
-// ======= Cloud Data (Supabase) =======
-async function loadCloudData() {
-  if (!currentUser || !supabase) return;
-  const { data } = await supabase.from('docforge_user_data').select('data_key,data_value').eq('user_id', currentUser.id);
-  cloudData = {};
-  if (data) data.forEach(row => { cloudData[row.data_key] = row.data_value; });
-}
-
-async function saveToCloud(key, value) {
-  if (!currentUser || !supabase) return;
-  cloudData[key] = value;
-  await supabase.from('docforge_user_data').upsert({
-    user_id: currentUser.id,
-    data_key: key,
-    data_value: value,
-    updated_at: new Date().toISOString()
-  }, { onConflict: 'user_id,data_key' });
-}
-
-async function deleteFromCloud(key) {
-  if (!currentUser || !supabase) return;
-  delete cloudData[key];
-  await supabase.from('docforge_user_data').delete().eq('user_id', currentUser.id).eq('data_key', key);
-}
-
-// ======= Storage helpers (localStorage + cloud) =======
-function storageKey(docIdx, col) { return col + '_' + docIdx; }
-
+// ======= Storage (localStorage) =======
 function getItems(docIdx, col) {
-  const key = storageKey(docIdx, col);
-  // Cloud data takes priority when logged in
-  if (currentUser && cloudData[key] !== undefined) return JSON.parse(JSON.stringify(cloudData[key]));
-  // Fallback to localStorage
-  const ls = localStorage.getItem('aipm_' + key);
+  const ls = localStorage.getItem('aipm_' + col + '_' + docIdx);
   if (ls) return JSON.parse(ls);
-  // Default from DOCS
   return DOCS[docIdx][col] ? JSON.parse(JSON.stringify(DOCS[docIdx][col])) : [];
 }
-
 function saveItems(docIdx, col, items) {
-  const key = storageKey(docIdx, col);
-  localStorage.setItem('aipm_' + key, JSON.stringify(items));
-  if (currentUser) saveToCloud(key, items);
+  localStorage.setItem('aipm_' + col + '_' + docIdx, JSON.stringify(items));
 }
-
 function getAttachments(docIdx) {
-  const key = 'attach_' + docIdx;
-  if (currentUser && cloudData[key] !== undefined) return JSON.parse(JSON.stringify(cloudData[key]));
-  const raw = localStorage.getItem('aipm_' + key);
+  const raw = localStorage.getItem('aipm_attach_' + docIdx);
   return raw ? JSON.parse(raw) : [];
 }
 function setAttachments(docIdx, list) {
-  const key = 'attach_' + docIdx;
-  localStorage.setItem('aipm_' + key, JSON.stringify(list));
-  if (currentUser) saveToCloud(key, list);
+  localStorage.setItem('aipm_attach_' + docIdx, JSON.stringify(list));
 }
-
 function getApiConfig(docIdx, modelName) {
-  const key = 'api_' + docIdx + '_' + modelName;
-  if (currentUser && cloudData[key] !== undefined) return cloudData[key];
-  const raw = localStorage.getItem('aipm_' + key);
+  const raw = localStorage.getItem('aipm_api_' + docIdx + '_' + modelName);
   return raw ? JSON.parse(raw) : { apiKey:'', endpoint:'' };
 }
 function setApiConfig(docIdx, modelName, config) {
-  const key = 'api_' + docIdx + '_' + modelName;
-  localStorage.setItem('aipm_' + key, JSON.stringify(config));
-  if (currentUser) saveToCloud(key, config);
+  localStorage.setItem('aipm_api_' + docIdx + '_' + modelName, JSON.stringify(config));
 }
-
 function getTemplateContent(docIdx) {
-  const key = 'tpl_' + docIdx;
-  if (currentUser && cloudData[key] !== undefined) return cloudData[key];
-  const raw = localStorage.getItem('aipm_' + key);
+  const raw = localStorage.getItem('aipm_tpl_' + docIdx);
   return raw ? JSON.parse(raw) : null;
 }
 function saveTemplateContent(docIdx, content) {
-  const key = 'tpl_' + docIdx;
-  localStorage.setItem('aipm_' + key, JSON.stringify(content));
-  if (currentUser) saveToCloud(key, content);
+  localStorage.setItem('aipm_tpl_' + docIdx, JSON.stringify(content));
 }
 function deleteTemplateContent(docIdx) {
-  const key = 'tpl_' + docIdx;
-  localStorage.removeItem('aipm_' + key);
-  if (currentUser) deleteFromCloud(key);
+  localStorage.removeItem('aipm_tpl_' + docIdx);
 }
 
 // ======= Display name (strip prefix numbers) =======
@@ -2396,27 +2189,8 @@ function showToast(msg) {
 }
 
 // ======= Init =======
-// Init
-(async function init() {
-  if (supabase) {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session && session.user) {
-        await onAuthStateChange(session.user);
-      }
-      supabase.auth.onAuthStateChange((event, session) => {
-        if (event === 'SIGNED_OUT') {
-          currentUser = null;
-          cloudData = {};
-          updateAuthUI();
-          render();
-        }
-      });
-    } catch(e) { console.warn('Auth init failed:', e); }
-  }
-  updateAuthUI();
-  render();
-})();
+// ======= Init =======
+render();
 
 </script>
 </body>
