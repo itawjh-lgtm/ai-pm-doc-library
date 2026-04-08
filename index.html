@@ -1,0 +1,1855 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VELA DocForge - AI产品经理文档工作台</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif; background:#f0f2f5; color:#333; }
+.container { max-width:1480px; margin:0 auto; padding:20px; }
+header { text-align:center; padding:36px 0 18px; }
+header h1 { font-size:32px; background:linear-gradient(135deg,#667eea,#764ba2); -webkit-background-clip:text; -webkit-text-fill-color:transparent; letter-spacing:2px; font-weight:800; }
+header p { color:#888; font-size:14px; margin-top:8px; letter-spacing:1px; }
+
+/* Stats bar */
+.stats-bar { display:flex; justify-content:center; gap:28px; margin:16px 0 20px; flex-wrap:wrap; }
+.stat-item { background:#fff; border-radius:12px; padding:12px 26px; box-shadow:0 1px 6px rgba(0,0,0,.06); text-align:center; min-width:90px; }
+.stat-item .num { font-size:24px; font-weight:700; background:linear-gradient(135deg,#667eea,#764ba2); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.stat-item .label { font-size:12px; color:#999; margin-top:2px; }
+
+/* Toolbar */
+.toolbar { display:flex; justify-content:center; gap:8px; margin-bottom:18px; flex-wrap:wrap; }
+.toolbar button { padding:7px 18px; border:1px solid #ddd; border-radius:20px; background:#fff; cursor:pointer; font-size:13px; transition:all .2s; }
+.toolbar button:hover { border-color:#667eea; color:#667eea; }
+.toolbar button.active { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; border-color:transparent; }
+
+/* Table */
+.table-wrap { overflow-x:auto; background:#fff; border-radius:14px; box-shadow:0 2px 16px rgba(0,0,0,.06); }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead th { position:sticky; top:0; background:#f8f9fc; padding:13px 10px; text-align:left; font-weight:600; font-size:13px; border-bottom:2px solid #eee; white-space:nowrap; z-index:10; }
+th .col-edit-btn { display:inline-block; margin-left:4px; cursor:pointer; font-size:12px; opacity:.4; transition:.2s; vertical-align:middle; border:none; background:none; padding:0 2px; }
+th .col-edit-btn:hover { opacity:1; }
+tbody td { padding:10px; border-bottom:1px solid #f0f0f0; vertical-align:top; }
+tbody tr:hover { background:#fafbff; }
+tbody tr.row-highlight { background:#eef2ff !important; }
+
+/* Phase header rows */
+tr.phase-header td { background:linear-gradient(135deg,#667eea18,#764ba218); font-weight:700; font-size:14px; color:#555; padding:10px 14px; border-bottom:2px solid #e0e0e0; }
+
+/* Links */
+a.tpl-link { color:#667eea; text-decoration:none; font-size:12px; display:inline-block; margin:1px 0; }
+a.tpl-link:hover { text-decoration:underline; }
+a.site-link, a.tool-link { text-decoration:none; font-size:12px; display:inline-block; margin:1px 0; }
+a.site-link { color:#e67e22; }
+a.tool-link { color:#27ae60; }
+a.site-link:hover, a.tool-link:hover { text-decoration:underline; }
+
+/* Model badges */
+.model-badge { display:inline-block; padding:2px 8px; border-radius:10px; font-size:11px; margin:1px 2px; color:#fff; text-decoration:none; white-space:nowrap; }
+.model-badge:hover { opacity:.85; }
+.model-tier-1 { background:linear-gradient(135deg,#f59e0b,#d97706); }
+.model-tier-2 { background:#3b82f6; }
+.model-tier-3 { background:#9ca3af; }
+
+/* Support material chips */
+.support-chip { display:inline-block; background:#f0f2ff; border:1px solid #dde; border-radius:6px; padding:2px 8px; font-size:11px; margin:2px 1px; }
+.support-chip a { color:#667eea; text-decoration:none; }
+.support-chip a:hover { text-decoration:underline; }
+
+/* More button */
+.more-btn { display:inline-block; padding:1px 8px; border:1px solid #ddd; border-radius:10px; font-size:11px; color:#888; cursor:pointer; background:#fafafa; transition:.2s; margin-top:2px; white-space:nowrap; }
+.more-btn:hover { border-color:#667eea; color:#667eea; background:#f0f2ff; }
+
+/* Attachment folder icon */
+.attach-folder { display:inline-flex; align-items:center; gap:4px; padding:4px 10px; border-radius:8px; cursor:pointer; font-size:13px; background:#fafafa; border:1px solid #e8e8e8; transition:.2s; position:relative; user-select:none; }
+.attach-folder:hover { border-color:#667eea; background:#f0f2ff; }
+.attach-folder .badge { display:inline-flex; align-items:center; justify-content:center; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; font-size:10px; font-weight:600; min-width:18px; height:18px; border-radius:9px; padding:0 4px; }
+
+/* Popup (shared for more-items and attachments) */
+.popup-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.3); z-index:900; }
+.popup-overlay.show { display:block; }
+.popup-box { position:fixed; background:#fff; border-radius:12px; box-shadow:0 8px 32px rgba(0,0,0,.18); z-index:910; min-width:260px; max-width:400px; max-height:400px; overflow:hidden; display:flex; flex-direction:column; }
+.popup-header { padding:12px 16px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+.popup-header h4 { font-size:14px; color:#333; margin:0; }
+.popup-close { width:26px; height:26px; border:none; background:#f0f0f0; border-radius:6px; cursor:pointer; font-size:16px; line-height:26px; text-align:center; }
+.popup-close:hover { background:#e0e0e0; }
+.popup-body { padding:12px 16px; overflow-y:auto; flex:1; }
+.popup-body .item-card { display:flex; align-items:center; justify-content:space-between; padding:6px 10px; background:#f8f9fc; border-radius:6px; margin-bottom:6px; }
+.popup-body .item-card a { color:inherit; text-decoration:none; font-size:12px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.popup-body .item-card a:hover { text-decoration:underline; }
+.popup-body .item-card .del-btn { width:20px; height:20px; border:none; background:none; cursor:pointer; color:#ccc; font-size:14px; flex-shrink:0; border-radius:4px; }
+.popup-body .item-card .del-btn:hover { color:#e74c3c; background:#fee; }
+.popup-footer { padding:10px 16px; border-top:1px solid #eee; }
+.popup-footer .add-row { display:flex; gap:6px; }
+.popup-footer input { flex:1; padding:6px 10px; border:1px solid #ddd; border-radius:6px; font-size:12px; }
+.popup-footer .add-btn { padding:6px 14px; border:none; border-radius:6px; background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; cursor:pointer; font-size:12px; white-space:nowrap; }
+.popup-footer .add-btn:hover { opacity:.9; }
+
+/* Column edit modal */
+.modal-overlay { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,.45); z-index:1000; justify-content:center; align-items:center; }
+.modal-overlay.show { display:flex; }
+.modal-box { background:#fff; border-radius:14px; width:740px; max-width:94vw; max-height:85vh; overflow:hidden; box-shadow:0 8px 40px rgba(0,0,0,.18); display:flex; flex-direction:column; }
+.modal-header { padding:18px 22px; border-bottom:1px solid #eee; display:flex; justify-content:space-between; align-items:center; }
+.modal-header h3 { font-size:16px; color:#333; }
+.modal-close { width:30px; height:30px; border:none; background:#f0f0f0; border-radius:8px; cursor:pointer; font-size:18px; line-height:30px; text-align:center; }
+.modal-close:hover { background:#e0e0e0; }
+.modal-body { padding:18px 22px; overflow-y:auto; flex:1; }
+.modal-row { display:flex; align-items:flex-start; gap:12px; margin-bottom:10px; padding:10px 12px; background:#fafbfc; border-radius:8px; }
+.modal-row-label { min-width:170px; font-size:13px; font-weight:500; color:#555; padding-top:6px; flex-shrink:0; }
+.modal-row-content { flex:1; }
+.modal-item-chips { display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px; }
+.modal-chip { display:inline-flex; align-items:center; background:#f0f2ff; border:1px solid #dde; border-radius:6px; padding:3px 8px; font-size:11px; color:#555; }
+.modal-chip a { color:#667eea; text-decoration:none; margin-right:4px; }
+.modal-chip .chip-del { margin-left:4px; cursor:pointer; color:#bbb; font-size:11px; border:none; background:none; padding:0 2px; }
+.modal-chip .chip-del:hover { color:#e74c3c; }
+.modal-add-row { display:flex; gap:4px; margin-top:4px; }
+.modal-add-row input { padding:4px 8px; border:1px solid #ddd; border-radius:4px; font-size:11px; }
+.modal-add-row input.name-input { width:100px; }
+.modal-add-row input.url-input { flex:1; }
+.modal-add-row button { padding:4px 10px; border:none; border-radius:4px; background:#667eea; color:#fff; cursor:pointer; font-size:11px; }
+.modal-footer { padding:14px 22px; border-top:1px solid #eee; text-align:right; }
+.modal-footer button { padding:8px 24px; border:none; border-radius:8px; cursor:pointer; font-size:13px; margin-left:8px; }
+.btn-cancel { background:#f0f0f0; color:#666; }
+.btn-cancel:hover { background:#e0e0e0; }
+.btn-save { background:linear-gradient(135deg,#667eea,#764ba2); color:#fff; }
+.btn-save:hover { opacity:.9; }
+
+/* Toast */
+.toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:10px 28px; border-radius:8px; font-size:13px; z-index:2000; opacity:0; transition:opacity .3s; pointer-events:none; }
+.toast.show { opacity:1; }
+
+/* Responsive */
+@media (max-width:768px) {
+  .container { padding:10px; }
+  header h1 { font-size:24px; }
+  .stats-bar { gap:12px; }
+  .stat-item { padding:8px 14px; }
+  .toolbar { gap:4px; }
+  .toolbar button { padding:5px 10px; font-size:12px; }
+  table { font-size:12px; }
+  thead th, tbody td { padding:8px 6px; }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>VELA DocForge</h1>
+    <p>AI产品经理 &middot; 从0到1全流程文档工作台</p>
+  </header>
+
+  <div class="stats-bar">
+    <div class="stat-item"><div class="num">33</div><div class="label">核心模板</div></div>
+    <div class="stat-item"><div class="num">27</div><div class="label">支撑模板</div></div>
+    <div class="stat-item"><div class="num">60</div><div class="label">总 .md 文件</div></div>
+    <div class="stat-item"><div class="num">6</div><div class="label">产品阶段</div></div>
+  </div>
+
+  <div class="toolbar" id="toolbar">
+    <button class="active" data-phase="all">全部阶段</button>
+    <button data-phase="1">P1 市场洞察</button>
+    <button data-phase="2">P2 用户研究</button>
+    <button data-phase="3">P3 产品规划</button>
+    <button data-phase="4">P4 设计体验</button>
+    <button data-phase="5">P5 技术开发</button>
+    <button data-phase="6">P6 上线运营</button>
+  </div>
+
+  <div class="table-wrap">
+    <table id="docTable">
+      <thead>
+        <tr>
+          <th style="min-width:170px">文档名称</th>
+          <th>通用模板</th>
+          <th>补充支撑文档</th>
+          <th>数据/报告网站 <button class="col-edit-btn" onclick="openColModal('sites')" title="编辑此列">&#9998;</button></th>
+          <th>推荐工具 <button class="col-edit-btn" onclick="openColModal('tools')" title="编辑此列">&#9998;</button></th>
+          <th>推荐模型 <button class="col-edit-btn" onclick="openColModal('models')" title="编辑此列">&#9998;</button></th>
+          <th style="width:90px">附件</th>
+        </tr>
+      </thead>
+      <tbody id="docBody"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Column edit modal -->
+<div class="modal-overlay" id="colModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="colModalTitle">编辑列</h3>
+      <button class="modal-close" onclick="closeColModal()">&times;</button>
+    </div>
+    <div class="modal-body" id="colModalBody"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeColModal()">取消</button>
+      <button class="btn-save" onclick="saveColModal()">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- Popup overlay for more-items and attachments -->
+<div class="popup-overlay" id="popupOverlay" onclick="closePopup()"></div>
+<div class="popup-box" id="popupBox" style="display:none;"></div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ======= Data =======
+const PHASES = [
+  { id:1, name:'P1 市场洞察与立项' },
+  { id:2, name:'P2 用户研究与洞察' },
+  { id:3, name:'P3 产品规划与设计' },
+  { id:4, name:'P4 设计与体验' },
+  { id:5, name:'P5 技术开发与测试' },
+  { id:6, name:'P6 上线运营与迭代' },
+];
+
+const DOCS = [
+  // === P1 市场洞察与立项 ===
+  {
+    name:'01_市场数据报告', phase:1, highlight:false,
+    tplFile:'模板/01_市场数据报告.md',
+    support:[
+      {name:'行业白皮书摘要', url:'支撑文档模板/S01_行业白皮书摘要模板.md'},
+      {name:'政策法规清单', url:'支撑文档模板/S02_政策法规清单模板.md'},
+      {name:'TAM/SAM/SOM测算表', url:'支撑文档模板/S03_TAM_SAM_SOM测算表模板.md'},
+      {name:'财务模型表', url:'支撑文档模板/S04_财务模型表模板.md'}
+    ],
+    sites:[
+      {name:'艾瑞咨询', url:'https://www.iresearch.com.cn'},
+      {name:'QuestMobile', url:'https://www.questmobile.com.cn'},
+      {name:'Statista', url:'https://www.statista.com'},
+      {name:'IDC', url:'https://www.idc.com'},
+      {name:'36氪研究院', url:'https://36kr.com'},
+      {name:'IT桔子', url:'https://www.itjuzi.com'},
+      {name:'前瞻产业研究院', url:'https://www.qianzhan.com'},
+      {name:'易观分析', url:'https://www.analysys.cn'},
+      {name:'中商产业研究院', url:'https://www.askci.com'},
+      {name:'CB Insights', url:'https://www.cbinsights.com'}
+    ],
+    tools:[
+      {name:'八爪鱼', url:'https://www.bazhuayu.com'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'石墨文档', url:'https://shimo.im'},
+      {name:'ProcessOn', url:'https://www.processon.com'},
+      {name:'XMind', url:'https://xmind.app'},
+      {name:'Miro', url:'https://miro.com'},
+      {name:'Canva', url:'https://www.canva.cn'},
+      {name:'Gamma', url:'https://gamma.app'},
+      {name:'WPS', url:'https://www.wps.cn'}
+    ],
+    models:[
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:1},
+      {name:'GPT', url:'https://chat.openai.com', tier:2},
+      {name:'Kimi', url:'https://kimi.moonshot.cn', tier:3}
+    ]
+  },
+  {
+    name:'02_竞品深度体验报告', phase:1, highlight:true,
+    tplFile:'模板/02_竞品深度体验报告.md',
+    support:[
+      {name:'竞品功能对比矩阵', url:'支撑文档模板/S06_竞品功能对比矩阵模板.md'},
+      {name:'行业白皮书摘要', url:'支撑文档模板/S01_行业白皮书摘要模板.md'},
+      {name:'TAM/SAM/SOM测算表', url:'支撑文档模板/S03_TAM_SAM_SOM测算表模板.md'}
+    ],
+    sites:[
+      {name:'艾瑞咨询', url:'https://www.iresearch.com.cn'},
+      {name:'QuestMobile', url:'https://www.questmobile.com.cn'},
+      {name:'Statista', url:'https://www.statista.com'},
+      {name:'IDC', url:'https://www.idc.com'},
+      {name:'36氪研究院', url:'https://36kr.com'},
+      {name:'IT桔子', url:'https://www.itjuzi.com'},
+      {name:'前瞻产业研究院', url:'https://www.qianzhan.com'},
+      {name:'易观分析', url:'https://www.analysys.cn'},
+      {name:'中商产业研究院', url:'https://www.askci.com'},
+      {name:'CB Insights', url:'https://www.cbinsights.com'}
+    ],
+    tools:[
+      {name:'八爪鱼', url:'https://www.bazhuayu.com'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'石墨文档', url:'https://shimo.im'},
+      {name:'ProcessOn', url:'https://www.processon.com'},
+      {name:'XMind', url:'https://xmind.app'},
+      {name:'Miro', url:'https://miro.com'},
+      {name:'Canva', url:'https://www.canva.cn'},
+      {name:'Gamma', url:'https://gamma.app'},
+      {name:'WPS', url:'https://www.wps.cn'}
+    ],
+    models:[
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:1},
+      {name:'GPT', url:'https://chat.openai.com', tier:2},
+      {name:'Claude', url:'https://claude.ai', tier:3}
+    ]
+  },
+  {
+    name:'03_商业计划书BP', phase:1, highlight:false,
+    tplFile:'模板/03_商业计划书BP.md',
+    support:[
+      {name:'财务模型表', url:'支撑文档模板/S04_财务模型表模板.md'},
+      {name:'ROI测算表', url:'支撑文档模板/S05_ROI测算表模板.md'},
+      {name:'TAM/SAM/SOM测算表', url:'支撑文档模板/S03_TAM_SAM_SOM测算表模板.md'},
+      {name:'行业白皮书摘要', url:'支撑文档模板/S01_行业白皮书摘要模板.md'}
+    ],
+    sites:[
+      {name:'艾瑞咨询', url:'https://www.iresearch.com.cn'},
+      {name:'QuestMobile', url:'https://www.questmobile.com.cn'},
+      {name:'Statista', url:'https://www.statista.com'},
+      {name:'IDC', url:'https://www.idc.com'},
+      {name:'36氪研究院', url:'https://36kr.com'},
+      {name:'IT桔子', url:'https://www.itjuzi.com'},
+      {name:'前瞻产业研究院', url:'https://www.qianzhan.com'},
+      {name:'易观分析', url:'https://www.analysys.cn'},
+      {name:'中商产业研究院', url:'https://www.askci.com'},
+      {name:'CB Insights', url:'https://www.cbinsights.com'}
+    ],
+    tools:[
+      {name:'八爪鱼', url:'https://www.bazhuayu.com'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'石墨文档', url:'https://shimo.im'},
+      {name:'ProcessOn', url:'https://www.processon.com'},
+      {name:'XMind', url:'https://xmind.app'},
+      {name:'Miro', url:'https://miro.com'},
+      {name:'Canva', url:'https://www.canva.cn'},
+      {name:'Gamma', url:'https://gamma.app'},
+      {name:'WPS', url:'https://www.wps.cn'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'Claude', url:'https://claude.ai', tier:2},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:3}
+    ]
+  },
+  {
+    name:'04_项目立项报告', phase:1, highlight:false,
+    tplFile:'模板/04_项目立项报告.md',
+    support:[
+      {name:'ROI测算表', url:'支撑文档模板/S05_ROI测算表模板.md'},
+      {name:'财务模型表', url:'支撑文档模板/S04_财务模型表模板.md'},
+      {name:'竞品功能对比矩阵', url:'支撑文档模板/S06_竞品功能对比矩阵模板.md'},
+      {name:'行业白皮书摘要', url:'支撑文档模板/S01_行业白皮书摘要模板.md'}
+    ],
+    sites:[
+      {name:'艾瑞咨询', url:'https://www.iresearch.com.cn'},
+      {name:'QuestMobile', url:'https://www.questmobile.com.cn'},
+      {name:'Statista', url:'https://www.statista.com'},
+      {name:'IDC', url:'https://www.idc.com'},
+      {name:'36氪研究院', url:'https://36kr.com'},
+      {name:'IT桔子', url:'https://www.itjuzi.com'},
+      {name:'前瞻产业研究院', url:'https://www.qianzhan.com'},
+      {name:'易观分析', url:'https://www.analysys.cn'},
+      {name:'中商产业研究院', url:'https://www.askci.com'},
+      {name:'CB Insights', url:'https://www.cbinsights.com'}
+    ],
+    tools:[
+      {name:'八爪鱼', url:'https://www.bazhuayu.com'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'石墨文档', url:'https://shimo.im'},
+      {name:'ProcessOn', url:'https://www.processon.com'},
+      {name:'XMind', url:'https://xmind.app'},
+      {name:'Miro', url:'https://miro.com'},
+      {name:'Canva', url:'https://www.canva.cn'},
+      {name:'Gamma', url:'https://gamma.app'},
+      {name:'WPS', url:'https://www.wps.cn'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:2},
+      {name:'Kimi', url:'https://kimi.moonshot.cn', tier:3}
+    ]
+  },
+  {
+    name:'05_SWOT分析报告', phase:1, highlight:false,
+    tplFile:'模板/05_SWOT分析报告.md',
+    support:[
+      {name:'竞品功能对比矩阵', url:'支撑文档模板/S06_竞品功能对比矩阵模板.md'},
+      {name:'行业白皮书摘要', url:'支撑文档模板/S01_行业白皮书摘要模板.md'},
+      {name:'TAM/SAM/SOM测算表', url:'支撑文档模板/S03_TAM_SAM_SOM测算表模板.md'}
+    ],
+    sites:[
+      {name:'艾瑞咨询', url:'https://www.iresearch.com.cn'},
+      {name:'QuestMobile', url:'https://www.questmobile.com.cn'},
+      {name:'Statista', url:'https://www.statista.com'},
+      {name:'IDC', url:'https://www.idc.com'},
+      {name:'36氪研究院', url:'https://36kr.com'},
+      {name:'IT桔子', url:'https://www.itjuzi.com'},
+      {name:'前瞻产业研究院', url:'https://www.qianzhan.com'},
+      {name:'易观分析', url:'https://www.analysys.cn'},
+      {name:'中商产业研究院', url:'https://www.askci.com'},
+      {name:'CB Insights', url:'https://www.cbinsights.com'}
+    ],
+    tools:[
+      {name:'八爪鱼', url:'https://www.bazhuayu.com'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'石墨文档', url:'https://shimo.im'},
+      {name:'ProcessOn', url:'https://www.processon.com'},
+      {name:'XMind', url:'https://xmind.app'},
+      {name:'Miro', url:'https://miro.com'},
+      {name:'Canva', url:'https://www.canva.cn'},
+      {name:'Gamma', url:'https://gamma.app'},
+      {name:'WPS', url:'https://www.wps.cn'}
+    ],
+    models:[
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:1},
+      {name:'GPT', url:'https://chat.openai.com', tier:2},
+      {name:'Claude', url:'https://claude.ai', tier:3}
+    ]
+  },
+
+  // === P2 用户研究与洞察 ===
+  {
+    name:'06_用户调研报告', phase:2, highlight:true,
+    tplFile:'模板/06_用户调研报告.md',
+    support:[
+      {name:'问卷模板', url:'支撑文档模板/S15_问卷模板.md'},
+      {name:'用户标签体系', url:'支撑文档模板/S09_用户标签体系模板.md'},
+      {name:'数据采集方法指南', url:'支撑文档模板/S27_数据采集方法指南.md'},
+      {name:'泳道图制作指南', url:'支撑文档模板/S16_泳道图制作指南.md'}
+    ],
+    sites:[
+      {name:'百度指数', url:'https://index.baidu.com'},
+      {name:'巨量算数', url:'https://trendinsight.oceanengine.com'},
+      {name:'微信指数', url:'https://weixin.qq.com'},
+      {name:'千瓜数据', url:'https://www.qian-gua.com'},
+      {name:'新榜', url:'https://www.newrank.cn'},
+      {name:'问卷星', url:'https://www.wjx.cn'},
+      {name:'腾讯问卷', url:'https://wj.qq.com'},
+      {name:'Nielsen Norman', url:'https://www.nngroup.com'},
+      {name:'UX Planet', url:'https://uxplanet.org'},
+      {name:'Mobbin', url:'https://mobbin.com'}
+    ],
+    tools:[
+      {name:'问卷星', url:'https://www.wjx.cn'},
+      {name:'金数据', url:'https://jinshuju.net'},
+      {name:'飞书妙记', url:'https://www.feishu.cn/product/minutes'},
+      {name:'讯飞听见', url:'https://www.iflyrec.com'},
+      {name:'Figma', url:'https://www.figma.com'},
+      {name:'Miro', url:'https://miro.com'},
+      {name:'即时设计', url:'https://js.design'},
+      {name:'墨刀', url:'https://modao.cc'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'SPSS', url:'https://www.ibm.com/spss'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:2},
+      {name:'Kimi', url:'https://kimi.moonshot.cn', tier:3}
+    ]
+  },
+  {
+    name:'07_用户画像文档', phase:2, highlight:false,
+    tplFile:'模板/07_用户画像文档.md',
+    support:[
+      {name:'用户标签体系', url:'支撑文档模板/S09_用户标签体系模板.md'},
+      {name:'数据采集方法指南', url:'支撑文档模板/S27_数据采集方法指南.md'},
+      {name:'问卷模板', url:'支撑文档模板/S15_问卷模板.md'}
+    ],
+    sites:[
+      {name:'百度指数', url:'https://index.baidu.com'},
+      {name:'巨量算数', url:'https://trendinsight.oceanengine.com'},
+      {name:'微信指数', url:'https://weixin.qq.com'},
+      {name:'千瓜数据', url:'https://www.qian-gua.com'},
+      {name:'新榜', url:'https://www.newrank.cn'},
+      {name:'问卷星', url:'https://www.wjx.cn'},
+      {name:'腾讯问卷', url:'https://wj.qq.com'},
+      {name:'Nielsen Norman', url:'https://www.nngroup.com'},
+      {name:'UX Planet', url:'https://uxplanet.org'},
+      {name:'Mobbin', url:'https://mobbin.com'}
+    ],
+    tools:[
+      {name:'问卷星', url:'https://www.wjx.cn'},
+      {name:'金数据', url:'https://jinshuju.net'},
+      {name:'飞书妙记', url:'https://www.feishu.cn/product/minutes'},
+      {name:'讯飞听见', url:'https://www.iflyrec.com'},
+      {name:'Figma', url:'https://www.figma.com'},
+      {name:'Miro', url:'https://miro.com'},
+      {name:'即时设计', url:'https://js.design'},
+      {name:'墨刀', url:'https://modao.cc'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'SPSS', url:'https://www.ibm.com/spss'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'Claude', url:'https://claude.ai', tier:2},
+      {name:'豆包', url:'https://www.doubao.com', tier:3}
+    ]
+  },
+  {
+    name:'08_问卷设计与数据报告', phase:2, highlight:false,
+    tplFile:'模板/08_问卷设计与数据报告.md',
+    support:[
+      {name:'问卷模板', url:'支撑文档模板/S15_问卷模板.md'},
+      {name:'数据采集方法指南', url:'支撑文档模板/S27_数据采集方法指南.md'},
+      {name:'用户标签体系', url:'支撑文档模板/S09_用户标签体系模板.md'}
+    ],
+    sites:[
+      {name:'百度指数', url:'https://index.baidu.com'},
+      {name:'巨量算数', url:'https://trendinsight.oceanengine.com'},
+      {name:'微信指数', url:'https://weixin.qq.com'},
+      {name:'千瓜数据', url:'https://www.qian-gua.com'},
+      {name:'新榜', url:'https://www.newrank.cn'},
+      {name:'问卷星', url:'https://www.wjx.cn'},
+      {name:'腾讯问卷', url:'https://wj.qq.com'},
+      {name:'Nielsen Norman', url:'https://www.nngroup.com'},
+      {name:'UX Planet', url:'https://uxplanet.org'},
+      {name:'Mobbin', url:'https://mobbin.com'}
+    ],
+    tools:[
+      {name:'问卷星', url:'https://www.wjx.cn'},
+      {name:'金数据', url:'https://jinshuju.net'},
+      {name:'飞书妙记', url:'https://www.feishu.cn/product/minutes'},
+      {name:'讯飞听见', url:'https://www.iflyrec.com'},
+      {name:'Figma', url:'https://www.figma.com'},
+      {name:'Miro', url:'https://miro.com'},
+      {name:'即时设计', url:'https://js.design'},
+      {name:'墨刀', url:'https://modao.cc'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'SPSS', url:'https://www.ibm.com/spss'}
+    ],
+    models:[
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:1},
+      {name:'GPT', url:'https://chat.openai.com', tier:2},
+      {name:'Qwen', url:'https://tongyi.aliyun.com', tier:3}
+    ]
+  },
+  {
+    name:'09_用户访谈记录与洞察报告', phase:2, highlight:false,
+    tplFile:'模板/09_用户访谈记录与洞察报告.md',
+    support:[
+      {name:'问卷模板', url:'支撑文档模板/S15_问卷模板.md'},
+      {name:'数据采集方法指南', url:'支撑文档模板/S27_数据采集方法指南.md'},
+      {name:'用户标签体系', url:'支撑文档模板/S09_用户标签体系模板.md'},
+      {name:'泳道图制作指南', url:'支撑文档模板/S16_泳道图制作指南.md'}
+    ],
+    sites:[
+      {name:'百度指数', url:'https://index.baidu.com'},
+      {name:'巨量算数', url:'https://trendinsight.oceanengine.com'},
+      {name:'微信指数', url:'https://weixin.qq.com'},
+      {name:'千瓜数据', url:'https://www.qian-gua.com'},
+      {name:'新榜', url:'https://www.newrank.cn'},
+      {name:'问卷星', url:'https://www.wjx.cn'},
+      {name:'腾讯问卷', url:'https://wj.qq.com'},
+      {name:'Nielsen Norman', url:'https://www.nngroup.com'},
+      {name:'UX Planet', url:'https://uxplanet.org'},
+      {name:'Mobbin', url:'https://mobbin.com'}
+    ],
+    tools:[
+      {name:'问卷星', url:'https://www.wjx.cn'},
+      {name:'金数据', url:'https://jinshuju.net'},
+      {name:'飞书妙记', url:'https://www.feishu.cn/product/minutes'},
+      {name:'讯飞听见', url:'https://www.iflyrec.com'},
+      {name:'Figma', url:'https://www.figma.com'},
+      {name:'Miro', url:'https://miro.com'},
+      {name:'即时设计', url:'https://js.design'},
+      {name:'墨刀', url:'https://modao.cc'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'SPSS', url:'https://www.ibm.com/spss'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'Claude', url:'https://claude.ai', tier:2},
+      {name:'Kimi', url:'https://kimi.moonshot.cn', tier:3}
+    ]
+  },
+  {
+    name:'10_用户旅程地图', phase:2, highlight:false,
+    tplFile:'模板/10_用户旅程地图.md',
+    support:[
+      {name:'泳道图制作指南', url:'支撑文档模板/S16_泳道图制作指南.md'},
+      {name:'用户标签体系', url:'支撑文档模板/S09_用户标签体系模板.md'},
+      {name:'数据采集方法指南', url:'支撑文档模板/S27_数据采集方法指南.md'}
+    ],
+    sites:[
+      {name:'百度指数', url:'https://index.baidu.com'},
+      {name:'巨量算数', url:'https://trendinsight.oceanengine.com'},
+      {name:'微信指数', url:'https://weixin.qq.com'},
+      {name:'千瓜数据', url:'https://www.qian-gua.com'},
+      {name:'新榜', url:'https://www.newrank.cn'},
+      {name:'问卷星', url:'https://www.wjx.cn'},
+      {name:'腾讯问卷', url:'https://wj.qq.com'},
+      {name:'Nielsen Norman', url:'https://www.nngroup.com'},
+      {name:'UX Planet', url:'https://uxplanet.org'},
+      {name:'Mobbin', url:'https://mobbin.com'}
+    ],
+    tools:[
+      {name:'问卷星', url:'https://www.wjx.cn'},
+      {name:'金数据', url:'https://jinshuju.net'},
+      {name:'飞书妙记', url:'https://www.feishu.cn/product/minutes'},
+      {name:'讯飞听见', url:'https://www.iflyrec.com'},
+      {name:'Figma', url:'https://www.figma.com'},
+      {name:'Miro', url:'https://miro.com'},
+      {name:'即时设计', url:'https://js.design'},
+      {name:'墨刀', url:'https://modao.cc'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'SPSS', url:'https://www.ibm.com/spss'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'Claude', url:'https://claude.ai', tier:2},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:3}
+    ]
+  },
+
+  // === P3 产品规划与设计 ===
+  {
+    name:'11_PRD产品需求文档', phase:3, highlight:true,
+    tplFile:'模板/11_PRD产品需求文档.md',
+    support:[
+      {name:'RICE评分表', url:'支撑文档模板/S07_RICE评分表模板.md'},
+      {name:'KANO分析表', url:'支撑文档模板/S08_KANO分析表模板.md'},
+      {name:'用户标签体系', url:'支撑文档模板/S09_用户标签体系模板.md'},
+      {name:'埋点验收清单', url:'支撑文档模板/S10_埋点验收清单模板.md'}
+    ],
+    sites:[
+      {name:'人人都是产品经理', url:'https://www.woshipm.com'},
+      {name:'PMTalk', url:'https://www.pmtalk.net'},
+      {name:'ProductHunt', url:'https://www.producthunt.com'},
+      {name:'36氪', url:'https://36kr.com'},
+      {name:'虎嗅', url:'https://www.huxiu.com'},
+      {name:'Axure原型库', url:'https://axhub.im'},
+      {name:'Mobbin', url:'https://mobbin.com'},
+      {name:'产品壹佰', url:'https://www.chanpin100.com'},
+      {name:'Medium', url:'https://medium.com'},
+      {name:'Mind the Product', url:'https://www.mindtheproduct.com'}
+    ],
+    tools:[
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'Axure', url:'https://www.axure.com'},
+      {name:'飞书多维表格', url:'https://www.feishu.cn/product/base'},
+      {name:'Airtable', url:'https://airtable.com'},
+      {name:'Linear', url:'https://linear.app'},
+      {name:'ProductPlan', url:'https://www.productplan.com'},
+      {name:'ProcessOn', url:'https://www.processon.com'},
+      {name:'draw.io', url:'https://app.diagrams.net'},
+      {name:'Whimsical', url:'https://whimsical.com'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'Claude', url:'https://claude.ai', tier:2},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:3}
+    ]
+  },
+  {
+    name:'12_产品路线图Roadmap', phase:3, highlight:false,
+    tplFile:'模板/12_产品路线图Roadmap.md',
+    support:[
+      {name:'RICE评分表', url:'支撑文档模板/S07_RICE评分表模板.md'},
+      {name:'KANO分析表', url:'支撑文档模板/S08_KANO分析表模板.md'},
+      {name:'竞品功能对比矩阵', url:'支撑文档模板/S06_竞品功能对比矩阵模板.md'}
+    ],
+    sites:[
+      {name:'人人都是产品经理', url:'https://www.woshipm.com'},
+      {name:'PMTalk', url:'https://www.pmtalk.net'},
+      {name:'ProductHunt', url:'https://www.producthunt.com'},
+      {name:'36氪', url:'https://36kr.com'},
+      {name:'虎嗅', url:'https://www.huxiu.com'},
+      {name:'Axure原型库', url:'https://axhub.im'},
+      {name:'Mobbin', url:'https://mobbin.com'},
+      {name:'产品壹佰', url:'https://www.chanpin100.com'},
+      {name:'Medium', url:'https://medium.com'},
+      {name:'Mind the Product', url:'https://www.mindtheproduct.com'}
+    ],
+    tools:[
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'Axure', url:'https://www.axure.com'},
+      {name:'飞书多维表格', url:'https://www.feishu.cn/product/base'},
+      {name:'Airtable', url:'https://airtable.com'},
+      {name:'Linear', url:'https://linear.app'},
+      {name:'ProductPlan', url:'https://www.productplan.com'},
+      {name:'ProcessOn', url:'https://www.processon.com'},
+      {name:'draw.io', url:'https://app.diagrams.net'},
+      {name:'Whimsical', url:'https://whimsical.com'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:2},
+      {name:'Kimi', url:'https://kimi.moonshot.cn', tier:3}
+    ]
+  },
+  {
+    name:'13_功能清单FeatureList', phase:3, highlight:false,
+    tplFile:'模板/13_功能清单FeatureList.md',
+    support:[
+      {name:'RICE评分表', url:'支撑文档模板/S07_RICE评分表模板.md'},
+      {name:'KANO分析表', url:'支撑文档模板/S08_KANO分析表模板.md'},
+      {name:'竞品功能对比矩阵', url:'支撑文档模板/S06_竞品功能对比矩阵模板.md'}
+    ],
+    sites:[
+      {name:'人人都是产品经理', url:'https://www.woshipm.com'},
+      {name:'PMTalk', url:'https://www.pmtalk.net'},
+      {name:'ProductHunt', url:'https://www.producthunt.com'},
+      {name:'36氪', url:'https://36kr.com'},
+      {name:'虎嗅', url:'https://www.huxiu.com'},
+      {name:'Axure原型库', url:'https://axhub.im'},
+      {name:'Mobbin', url:'https://mobbin.com'},
+      {name:'产品壹佰', url:'https://www.chanpin100.com'},
+      {name:'Medium', url:'https://medium.com'},
+      {name:'Mind the Product', url:'https://www.mindtheproduct.com'}
+    ],
+    tools:[
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'Axure', url:'https://www.axure.com'},
+      {name:'飞书多维表格', url:'https://www.feishu.cn/product/base'},
+      {name:'Airtable', url:'https://airtable.com'},
+      {name:'Linear', url:'https://linear.app'},
+      {name:'ProductPlan', url:'https://www.productplan.com'},
+      {name:'ProcessOn', url:'https://www.processon.com'},
+      {name:'draw.io', url:'https://app.diagrams.net'},
+      {name:'Whimsical', url:'https://whimsical.com'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:2},
+      {name:'Qwen', url:'https://tongyi.aliyun.com', tier:3}
+    ]
+  },
+  {
+    name:'14_信息架构图IA', phase:3, highlight:false,
+    tplFile:'模板/14_信息架构图IA.md',
+    support:[
+      {name:'架构图制作指南', url:'支撑文档模板/S17_架构图制作指南.md'},
+      {name:'RICE评分表', url:'支撑文档模板/S07_RICE评分表模板.md'},
+      {name:'用户标签体系', url:'支撑文档模板/S09_用户标签体系模板.md'}
+    ],
+    sites:[
+      {name:'人人都是产品经理', url:'https://www.woshipm.com'},
+      {name:'PMTalk', url:'https://www.pmtalk.net'},
+      {name:'ProductHunt', url:'https://www.producthunt.com'},
+      {name:'36氪', url:'https://36kr.com'},
+      {name:'虎嗅', url:'https://www.huxiu.com'},
+      {name:'Axure原型库', url:'https://axhub.im'},
+      {name:'Mobbin', url:'https://mobbin.com'},
+      {name:'产品壹佰', url:'https://www.chanpin100.com'},
+      {name:'Medium', url:'https://medium.com'},
+      {name:'Mind the Product', url:'https://www.mindtheproduct.com'}
+    ],
+    tools:[
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'Axure', url:'https://www.axure.com'},
+      {name:'飞书多维表格', url:'https://www.feishu.cn/product/base'},
+      {name:'Airtable', url:'https://airtable.com'},
+      {name:'Linear', url:'https://linear.app'},
+      {name:'ProductPlan', url:'https://www.productplan.com'},
+      {name:'ProcessOn', url:'https://www.processon.com'},
+      {name:'draw.io', url:'https://app.diagrams.net'},
+      {name:'Whimsical', url:'https://whimsical.com'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'Claude', url:'https://claude.ai', tier:2},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:3}
+    ]
+  },
+  {
+    name:'15_业务流程图', phase:3, highlight:false,
+    tplFile:'模板/15_业务流程图.md',
+    support:[
+      {name:'泳道图制作指南', url:'支撑文档模板/S16_泳道图制作指南.md'},
+      {name:'架构图制作指南', url:'支撑文档模板/S17_架构图制作指南.md'},
+      {name:'RICE评分表', url:'支撑文档模板/S07_RICE评分表模板.md'}
+    ],
+    sites:[
+      {name:'人人都是产品经理', url:'https://www.woshipm.com'},
+      {name:'PMTalk', url:'https://www.pmtalk.net'},
+      {name:'ProductHunt', url:'https://www.producthunt.com'},
+      {name:'36氪', url:'https://36kr.com'},
+      {name:'虎嗅', url:'https://www.huxiu.com'},
+      {name:'Axure原型库', url:'https://axhub.im'},
+      {name:'Mobbin', url:'https://mobbin.com'},
+      {name:'产品壹佰', url:'https://www.chanpin100.com'},
+      {name:'Medium', url:'https://medium.com'},
+      {name:'Mind the Product', url:'https://www.mindtheproduct.com'}
+    ],
+    tools:[
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'Axure', url:'https://www.axure.com'},
+      {name:'飞书多维表格', url:'https://www.feishu.cn/product/base'},
+      {name:'Airtable', url:'https://airtable.com'},
+      {name:'Linear', url:'https://linear.app'},
+      {name:'ProductPlan', url:'https://www.productplan.com'},
+      {name:'ProcessOn', url:'https://www.processon.com'},
+      {name:'draw.io', url:'https://app.diagrams.net'},
+      {name:'Whimsical', url:'https://whimsical.com'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'Claude', url:'https://claude.ai', tier:2},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:3}
+    ]
+  },
+  {
+    name:'16_数据指标体系文档', phase:3, highlight:false,
+    tplFile:'模板/16_数据指标体系文档.md',
+    support:[
+      {name:'埋点验收清单', url:'支撑文档模板/S10_埋点验收清单模板.md'},
+      {name:'数据看板制作指南', url:'支撑文档模板/S18_数据看板制作指南.md'},
+      {name:'数据采集方法指南', url:'支撑文档模板/S27_数据采集方法指南.md'},
+      {name:'AB实验报告模板', url:'支撑文档模板/S21_AB实验报告模板.md'}
+    ],
+    sites:[
+      {name:'人人都是产品经理', url:'https://www.woshipm.com'},
+      {name:'PMTalk', url:'https://www.pmtalk.net'},
+      {name:'ProductHunt', url:'https://www.producthunt.com'},
+      {name:'36氪', url:'https://36kr.com'},
+      {name:'虎嗅', url:'https://www.huxiu.com'},
+      {name:'Axure原型库', url:'https://axhub.im'},
+      {name:'Mobbin', url:'https://mobbin.com'},
+      {name:'产品壹佰', url:'https://www.chanpin100.com'},
+      {name:'Medium', url:'https://medium.com'},
+      {name:'Mind the Product', url:'https://www.mindtheproduct.com'}
+    ],
+    tools:[
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'Axure', url:'https://www.axure.com'},
+      {name:'飞书多维表格', url:'https://www.feishu.cn/product/base'},
+      {name:'Airtable', url:'https://airtable.com'},
+      {name:'Linear', url:'https://linear.app'},
+      {name:'ProductPlan', url:'https://www.productplan.com'},
+      {name:'ProcessOn', url:'https://www.processon.com'},
+      {name:'draw.io', url:'https://app.diagrams.net'},
+      {name:'Whimsical', url:'https://whimsical.com'}
+    ],
+    models:[
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:1},
+      {name:'GPT', url:'https://chat.openai.com', tier:2},
+      {name:'Qwen', url:'https://tongyi.aliyun.com', tier:3}
+    ]
+  },
+
+  // === P4 设计与体验 ===
+  {
+    name:'17_交互原型文档', phase:4, highlight:false,
+    tplFile:'模板/17_交互原型文档.md',
+    support:[
+      {name:'截图录屏制作规范', url:'支撑文档模板/S26_截图录屏制作规范.md'},
+      {name:'泳道图制作指南', url:'支撑文档模板/S16_泳道图制作指南.md'},
+      {name:'架构图制作指南', url:'支撑文档模板/S17_架构图制作指南.md'}
+    ],
+    sites:[
+      {name:'Mobbin', url:'https://mobbin.com'},
+      {name:'Dribbble', url:'https://dribbble.com'},
+      {name:'Behance', url:'https://www.behance.net'},
+      {name:'Apple HIG', url:'https://developer.apple.com/design/human-interface-guidelines/'},
+      {name:'Material Design 3', url:'https://m3.material.io'},
+      {name:'Ant Design', url:'https://ant-design.antgroup.com'},
+      {name:'Screenlane', url:'https://screenlane.com'},
+      {name:'Collect UI', url:'https://collectui.com'},
+      {name:'UI8', url:'https://ui8.net'},
+      {name:'Figma Community', url:'https://www.figma.com/community'}
+    ],
+    tools:[
+      {name:'Figma', url:'https://www.figma.com'},
+      {name:'Sketch', url:'https://www.sketch.com'},
+      {name:'即时设计', url:'https://js.design'},
+      {name:'墨刀', url:'https://modao.cc'},
+      {name:'Axure', url:'https://www.axure.com'},
+      {name:'蓝湖', url:'https://lanhuapp.com'},
+      {name:'Zeplin', url:'https://zeplin.io'},
+      {name:'IconPark', url:'https://iconpark.oceanengine.com'},
+      {name:'Principle', url:'https://principleformac.com'},
+      {name:'ProtoPie', url:'https://www.protopie.io'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'Claude', url:'https://claude.ai', tier:2},
+      {name:'豆包', url:'https://www.doubao.com', tier:3}
+    ]
+  },
+  {
+    name:'18_UI设计规范DesignSystem', phase:4, highlight:false,
+    tplFile:'模板/18_UI设计规范DesignSystem.md',
+    support:[
+      {name:'截图录屏制作规范', url:'支撑文档模板/S26_截图录屏制作规范.md'},
+      {name:'架构图制作指南', url:'支撑文档模板/S17_架构图制作指南.md'},
+      {name:'泳道图制作指南', url:'支撑文档模板/S16_泳道图制作指南.md'}
+    ],
+    sites:[
+      {name:'Mobbin', url:'https://mobbin.com'},
+      {name:'Dribbble', url:'https://dribbble.com'},
+      {name:'Behance', url:'https://www.behance.net'},
+      {name:'Apple HIG', url:'https://developer.apple.com/design/human-interface-guidelines/'},
+      {name:'Material Design 3', url:'https://m3.material.io'},
+      {name:'Ant Design', url:'https://ant-design.antgroup.com'},
+      {name:'Screenlane', url:'https://screenlane.com'},
+      {name:'Collect UI', url:'https://collectui.com'},
+      {name:'UI8', url:'https://ui8.net'},
+      {name:'Figma Community', url:'https://www.figma.com/community'}
+    ],
+    tools:[
+      {name:'Figma', url:'https://www.figma.com'},
+      {name:'Sketch', url:'https://www.sketch.com'},
+      {name:'即时设计', url:'https://js.design'},
+      {name:'墨刀', url:'https://modao.cc'},
+      {name:'Axure', url:'https://www.axure.com'},
+      {name:'蓝湖', url:'https://lanhuapp.com'},
+      {name:'Zeplin', url:'https://zeplin.io'},
+      {name:'IconPark', url:'https://iconpark.oceanengine.com'},
+      {name:'Principle', url:'https://principleformac.com'},
+      {name:'ProtoPie', url:'https://www.protopie.io'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'Claude', url:'https://claude.ai', tier:2},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:3}
+    ]
+  },
+  {
+    name:'19_设计走查清单', phase:4, highlight:false,
+    tplFile:'模板/19_设计走查清单.md',
+    support:[
+      {name:'截图录屏制作规范', url:'支撑文档模板/S26_截图录屏制作规范.md'},
+      {name:'Bug跟踪表', url:'支撑文档模板/S20_Bug跟踪表模板.md'},
+      {name:'架构图制作指南', url:'支撑文档模板/S17_架构图制作指南.md'}
+    ],
+    sites:[
+      {name:'Mobbin', url:'https://mobbin.com'},
+      {name:'Dribbble', url:'https://dribbble.com'},
+      {name:'Behance', url:'https://www.behance.net'},
+      {name:'Apple HIG', url:'https://developer.apple.com/design/human-interface-guidelines/'},
+      {name:'Material Design 3', url:'https://m3.material.io'},
+      {name:'Ant Design', url:'https://ant-design.antgroup.com'},
+      {name:'Screenlane', url:'https://screenlane.com'},
+      {name:'Collect UI', url:'https://collectui.com'},
+      {name:'UI8', url:'https://ui8.net'},
+      {name:'Figma Community', url:'https://www.figma.com/community'}
+    ],
+    tools:[
+      {name:'Figma', url:'https://www.figma.com'},
+      {name:'Sketch', url:'https://www.sketch.com'},
+      {name:'即时设计', url:'https://js.design'},
+      {name:'墨刀', url:'https://modao.cc'},
+      {name:'Axure', url:'https://www.axure.com'},
+      {name:'蓝湖', url:'https://lanhuapp.com'},
+      {name:'Zeplin', url:'https://zeplin.io'},
+      {name:'IconPark', url:'https://iconpark.oceanengine.com'},
+      {name:'Principle', url:'https://principleformac.com'},
+      {name:'ProtoPie', url:'https://www.protopie.io'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'Claude', url:'https://claude.ai', tier:2},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:3}
+    ]
+  },
+
+  // === P5 技术开发与测试 ===
+  {
+    name:'20_技术报告', phase:5, highlight:true,
+    tplFile:'模板/20_技术报告.md',
+    support:[
+      {name:'架构图制作指南', url:'支撑文档模板/S17_架构图制作指南.md'},
+      {name:'性能测试报告模板', url:'支撑文档模板/S19_性能测试报告模板.md'},
+      {name:'Bug跟踪表', url:'支撑文档模板/S20_Bug跟踪表模板.md'},
+      {name:'AB实验报告模板', url:'支撑文档模板/S21_AB实验报告模板.md'}
+    ],
+    sites:[
+      {name:'掘金', url:'https://juejin.cn'},
+      {name:'InfoQ', url:'https://www.infoq.cn'},
+      {name:'GitHub Trending', url:'https://github.com/trending'},
+      {name:'Hugging Face', url:'https://huggingface.co'},
+      {name:'LMSYS Arena', url:'https://lmarena.ai'},
+      {name:'OpenCompass', url:'https://opencompass.org.cn'},
+      {name:'Swagger', url:'https://swagger.io/specification/'},
+      {name:'神策学院', url:'https://school.sensorsdata.cn'},
+      {name:'禅道知识库', url:'https://www.zentao.net/book/'},
+      {name:'Stack Overflow', url:'https://stackoverflow.com'}
+    ],
+    tools:[
+      {name:'GitHub', url:'https://github.com'},
+      {name:'Apifox', url:'https://apifox.com'},
+      {name:'Postman', url:'https://www.postman.com'},
+      {name:'Swagger', url:'https://swagger.io'},
+      {name:'draw.io', url:'https://app.diagrams.net'},
+      {name:'Navicat', url:'https://www.navicat.com'},
+      {name:'dbdiagram.io', url:'https://dbdiagram.io'},
+      {name:'神策分析', url:'https://www.sensorsdata.cn'},
+      {name:'GrowingIO', url:'https://www.growingio.com'},
+      {name:'DBeaver', url:'https://dbeaver.io'},
+      {name:'LangChain', url:'https://www.langchain.com'},
+      {name:'Dify', url:'https://dify.ai'}
+    ],
+    models:[
+      {name:'Claude', url:'https://claude.ai', tier:1},
+      {name:'GPT', url:'https://chat.openai.com', tier:2},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:3}
+    ]
+  },
+  {
+    name:'21_模型选型评估报告', phase:5, highlight:false,
+    tplFile:'模板/21_模型选型评估报告.md',
+    support:[
+      {name:'AB实验报告模板', url:'支撑文档模板/S21_AB实验报告模板.md'},
+      {name:'性能测试报告模板', url:'支撑文档模板/S19_性能测试报告模板.md'},
+      {name:'架构图制作指南', url:'支撑文档模板/S17_架构图制作指南.md'}
+    ],
+    sites:[
+      {name:'掘金', url:'https://juejin.cn'},
+      {name:'InfoQ', url:'https://www.infoq.cn'},
+      {name:'GitHub Trending', url:'https://github.com/trending'},
+      {name:'Hugging Face', url:'https://huggingface.co'},
+      {name:'LMSYS Arena', url:'https://lmarena.ai'},
+      {name:'OpenCompass', url:'https://opencompass.org.cn'},
+      {name:'Swagger', url:'https://swagger.io/specification/'},
+      {name:'神策学院', url:'https://school.sensorsdata.cn'},
+      {name:'禅道知识库', url:'https://www.zentao.net/book/'},
+      {name:'Stack Overflow', url:'https://stackoverflow.com'}
+    ],
+    tools:[
+      {name:'GitHub', url:'https://github.com'},
+      {name:'Apifox', url:'https://apifox.com'},
+      {name:'Postman', url:'https://www.postman.com'},
+      {name:'Swagger', url:'https://swagger.io'},
+      {name:'draw.io', url:'https://app.diagrams.net'},
+      {name:'Navicat', url:'https://www.navicat.com'},
+      {name:'dbdiagram.io', url:'https://dbdiagram.io'},
+      {name:'神策分析', url:'https://www.sensorsdata.cn'},
+      {name:'GrowingIO', url:'https://www.growingio.com'},
+      {name:'DBeaver', url:'https://dbeaver.io'},
+      {name:'LangChain', url:'https://www.langchain.com'},
+      {name:'Dify', url:'https://dify.ai'}
+    ],
+    models:[
+      {name:'Claude', url:'https://claude.ai', tier:1},
+      {name:'GPT', url:'https://chat.openai.com', tier:2},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:3}
+    ]
+  },
+  {
+    name:'22_API接口文档', phase:5, highlight:false,
+    tplFile:'模板/22_API接口文档.md',
+    support:[
+      {name:'FAQ知识库模板', url:'支撑文档模板/S22_FAQ知识库模板.md'},
+      {name:'架构图制作指南', url:'支撑文档模板/S17_架构图制作指南.md'},
+      {name:'性能测试报告模板', url:'支撑文档模板/S19_性能测试报告模板.md'}
+    ],
+    sites:[
+      {name:'掘金', url:'https://juejin.cn'},
+      {name:'InfoQ', url:'https://www.infoq.cn'},
+      {name:'GitHub Trending', url:'https://github.com/trending'},
+      {name:'Hugging Face', url:'https://huggingface.co'},
+      {name:'LMSYS Arena', url:'https://lmarena.ai'},
+      {name:'OpenCompass', url:'https://opencompass.org.cn'},
+      {name:'Swagger', url:'https://swagger.io/specification/'},
+      {name:'神策学院', url:'https://school.sensorsdata.cn'},
+      {name:'禅道知识库', url:'https://www.zentao.net/book/'},
+      {name:'Stack Overflow', url:'https://stackoverflow.com'}
+    ],
+    tools:[
+      {name:'GitHub', url:'https://github.com'},
+      {name:'Apifox', url:'https://apifox.com'},
+      {name:'Postman', url:'https://www.postman.com'},
+      {name:'Swagger', url:'https://swagger.io'},
+      {name:'draw.io', url:'https://app.diagrams.net'},
+      {name:'Navicat', url:'https://www.navicat.com'},
+      {name:'dbdiagram.io', url:'https://dbdiagram.io'},
+      {name:'神策分析', url:'https://www.sensorsdata.cn'},
+      {name:'GrowingIO', url:'https://www.growingio.com'},
+      {name:'DBeaver', url:'https://dbeaver.io'},
+      {name:'LangChain', url:'https://www.langchain.com'},
+      {name:'Dify', url:'https://dify.ai'}
+    ],
+    models:[
+      {name:'Claude', url:'https://claude.ai', tier:1},
+      {name:'GPT', url:'https://chat.openai.com', tier:2},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:3}
+    ]
+  },
+  {
+    name:'23_数据库设计文档', phase:5, highlight:false,
+    tplFile:'模板/23_数据库设计文档.md',
+    support:[
+      {name:'FAQ知识库模板', url:'支撑文档模板/S22_FAQ知识库模板.md'},
+      {name:'架构图制作指南', url:'支撑文档模板/S17_架构图制作指南.md'},
+      {name:'性能测试报告模板', url:'支撑文档模板/S19_性能测试报告模板.md'}
+    ],
+    sites:[
+      {name:'掘金', url:'https://juejin.cn'},
+      {name:'InfoQ', url:'https://www.infoq.cn'},
+      {name:'GitHub Trending', url:'https://github.com/trending'},
+      {name:'Hugging Face', url:'https://huggingface.co'},
+      {name:'LMSYS Arena', url:'https://lmarena.ai'},
+      {name:'OpenCompass', url:'https://opencompass.org.cn'},
+      {name:'Swagger', url:'https://swagger.io/specification/'},
+      {name:'神策学院', url:'https://school.sensorsdata.cn'},
+      {name:'禅道知识库', url:'https://www.zentao.net/book/'},
+      {name:'Stack Overflow', url:'https://stackoverflow.com'}
+    ],
+    tools:[
+      {name:'GitHub', url:'https://github.com'},
+      {name:'Apifox', url:'https://apifox.com'},
+      {name:'Postman', url:'https://www.postman.com'},
+      {name:'Swagger', url:'https://swagger.io'},
+      {name:'draw.io', url:'https://app.diagrams.net'},
+      {name:'Navicat', url:'https://www.navicat.com'},
+      {name:'dbdiagram.io', url:'https://dbdiagram.io'},
+      {name:'神策分析', url:'https://www.sensorsdata.cn'},
+      {name:'GrowingIO', url:'https://www.growingio.com'},
+      {name:'DBeaver', url:'https://dbeaver.io'},
+      {name:'LangChain', url:'https://www.langchain.com'},
+      {name:'Dify', url:'https://dify.ai'}
+    ],
+    models:[
+      {name:'Claude', url:'https://claude.ai', tier:1},
+      {name:'GPT', url:'https://chat.openai.com', tier:2},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:3}
+    ]
+  },
+  {
+    name:'24_埋点需求文档', phase:5, highlight:false,
+    tplFile:'模板/24_埋点需求文档.md',
+    support:[
+      {name:'埋点验收清单', url:'支撑文档模板/S10_埋点验收清单模板.md'},
+      {name:'数据采集方法指南', url:'支撑文档模板/S27_数据采集方法指南.md'},
+      {name:'数据看板制作指南', url:'支撑文档模板/S18_数据看板制作指南.md'}
+    ],
+    sites:[
+      {name:'掘金', url:'https://juejin.cn'},
+      {name:'InfoQ', url:'https://www.infoq.cn'},
+      {name:'GitHub Trending', url:'https://github.com/trending'},
+      {name:'Hugging Face', url:'https://huggingface.co'},
+      {name:'LMSYS Arena', url:'https://lmarena.ai'},
+      {name:'OpenCompass', url:'https://opencompass.org.cn'},
+      {name:'Swagger', url:'https://swagger.io/specification/'},
+      {name:'神策学院', url:'https://school.sensorsdata.cn'},
+      {name:'禅道知识库', url:'https://www.zentao.net/book/'},
+      {name:'Stack Overflow', url:'https://stackoverflow.com'}
+    ],
+    tools:[
+      {name:'GitHub', url:'https://github.com'},
+      {name:'Apifox', url:'https://apifox.com'},
+      {name:'Postman', url:'https://www.postman.com'},
+      {name:'Swagger', url:'https://swagger.io'},
+      {name:'draw.io', url:'https://app.diagrams.net'},
+      {name:'Navicat', url:'https://www.navicat.com'},
+      {name:'dbdiagram.io', url:'https://dbdiagram.io'},
+      {name:'神策分析', url:'https://www.sensorsdata.cn'},
+      {name:'GrowingIO', url:'https://www.growingio.com'},
+      {name:'DBeaver', url:'https://dbeaver.io'},
+      {name:'LangChain', url:'https://www.langchain.com'},
+      {name:'Dify', url:'https://dify.ai'}
+    ],
+    models:[
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:1},
+      {name:'GPT', url:'https://chat.openai.com', tier:2},
+      {name:'Qwen', url:'https://tongyi.aliyun.com', tier:3}
+    ]
+  },
+  {
+    name:'25_测试用例文档', phase:5, highlight:false,
+    tplFile:'模板/25_测试用例文档.md',
+    support:[
+      {name:'Bug跟踪表', url:'支撑文档模板/S20_Bug跟踪表模板.md'},
+      {name:'性能测试报告模板', url:'支撑文档模板/S19_性能测试报告模板.md'},
+      {name:'AB实验报告模板', url:'支撑文档模板/S21_AB实验报告模板.md'}
+    ],
+    sites:[
+      {name:'掘金', url:'https://juejin.cn'},
+      {name:'InfoQ', url:'https://www.infoq.cn'},
+      {name:'GitHub Trending', url:'https://github.com/trending'},
+      {name:'Hugging Face', url:'https://huggingface.co'},
+      {name:'LMSYS Arena', url:'https://lmarena.ai'},
+      {name:'OpenCompass', url:'https://opencompass.org.cn'},
+      {name:'Swagger', url:'https://swagger.io/specification/'},
+      {name:'神策学院', url:'https://school.sensorsdata.cn'},
+      {name:'禅道知识库', url:'https://www.zentao.net/book/'},
+      {name:'Stack Overflow', url:'https://stackoverflow.com'}
+    ],
+    tools:[
+      {name:'GitHub', url:'https://github.com'},
+      {name:'Apifox', url:'https://apifox.com'},
+      {name:'Postman', url:'https://www.postman.com'},
+      {name:'Swagger', url:'https://swagger.io'},
+      {name:'draw.io', url:'https://app.diagrams.net'},
+      {name:'Navicat', url:'https://www.navicat.com'},
+      {name:'dbdiagram.io', url:'https://dbdiagram.io'},
+      {name:'神策分析', url:'https://www.sensorsdata.cn'},
+      {name:'GrowingIO', url:'https://www.growingio.com'},
+      {name:'DBeaver', url:'https://dbeaver.io'},
+      {name:'LangChain', url:'https://www.langchain.com'},
+      {name:'Dify', url:'https://dify.ai'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'Claude', url:'https://claude.ai', tier:2},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:3}
+    ]
+  },
+
+  // === P6 上线运营与迭代 ===
+  {
+    name:'26_产品使用手册', phase:6, highlight:true,
+    tplFile:'模板/26_产品使用手册.md',
+    support:[
+      {name:'FAQ知识库模板', url:'支撑文档模板/S22_FAQ知识库模板.md'},
+      {name:'截图录屏制作规范', url:'支撑文档模板/S26_截图录屏制作规范.md'},
+      {name:'活动SOP模板', url:'支撑文档模板/S23_活动SOP模板.md'}
+    ],
+    sites:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion模板库', url:'https://www.notion.so/templates'},
+      {name:'七麦数据', url:'https://www.qimai.cn'},
+      {name:'蝉大师', url:'https://www.chandashi.com'},
+      {name:'SensorTower', url:'https://app.sensortower.com'},
+      {name:'新榜', url:'https://www.newrank.cn'},
+      {name:'蝉妈妈', url:'https://www.chanmama.com'},
+      {name:'飞瓜数据', url:'https://feigua.cn'},
+      {name:'国家网信办', url:'https://www.cac.gov.cn'},
+      {name:'阿里云文档', url:'https://help.aliyun.com'}
+    ],
+    tools:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'Gamma', url:'https://gamma.app'},
+      {name:'Canva', url:'https://www.canva.cn'},
+      {name:'神策分析', url:'https://www.sensorsdata.cn'},
+      {name:'Tableau', url:'https://www.tableau.com'},
+      {name:'Metabase', url:'https://www.metabase.com'},
+      {name:'GrowingIO', url:'https://www.growingio.com'},
+      {name:'HubSpot', url:'https://www.hubspot.com'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'Claude', url:'https://claude.ai', tier:2},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:3}
+    ]
+  },
+  {
+    name:'27_上线CheckList', phase:6, highlight:false,
+    tplFile:'模板/27_上线CheckList.md',
+    support:[
+      {name:'灰度发布计划', url:'支撑文档模板/S11_灰度发布计划模板.md'},
+      {name:'应急预案', url:'支撑文档模板/S12_应急预案模板.md'},
+      {name:'Bug跟踪表', url:'支撑文档模板/S20_Bug跟踪表模板.md'},
+      {name:'性能测试报告模板', url:'支撑文档模板/S19_性能测试报告模板.md'}
+    ],
+    sites:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion模板库', url:'https://www.notion.so/templates'},
+      {name:'七麦数据', url:'https://www.qimai.cn'},
+      {name:'蝉大师', url:'https://www.chandashi.com'},
+      {name:'SensorTower', url:'https://app.sensortower.com'},
+      {name:'新榜', url:'https://www.newrank.cn'},
+      {name:'蝉妈妈', url:'https://www.chanmama.com'},
+      {name:'飞瓜数据', url:'https://feigua.cn'},
+      {name:'国家网信办', url:'https://www.cac.gov.cn'},
+      {name:'阿里云文档', url:'https://help.aliyun.com'}
+    ],
+    tools:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'Gamma', url:'https://gamma.app'},
+      {name:'Canva', url:'https://www.canva.cn'},
+      {name:'神策分析', url:'https://www.sensorsdata.cn'},
+      {name:'Tableau', url:'https://www.tableau.com'},
+      {name:'Metabase', url:'https://www.metabase.com'},
+      {name:'GrowingIO', url:'https://www.growingio.com'},
+      {name:'HubSpot', url:'https://www.hubspot.com'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:2},
+      {name:'Kimi', url:'https://kimi.moonshot.cn', tier:3}
+    ]
+  },
+  {
+    name:'28_商业化与定价方案', phase:6, highlight:false,
+    tplFile:'模板/28_商业化与定价方案.md',
+    support:[
+      {name:'财务模型表', url:'支撑文档模板/S04_财务模型表模板.md'},
+      {name:'竞品功能对比矩阵', url:'支撑文档模板/S06_竞品功能对比矩阵模板.md'},
+      {name:'ROI测算表', url:'支撑文档模板/S05_ROI测算表模板.md'},
+      {name:'渠道投放计划表', url:'支撑文档模板/S14_渠道投放计划表模板.md'}
+    ],
+    sites:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion模板库', url:'https://www.notion.so/templates'},
+      {name:'七麦数据', url:'https://www.qimai.cn'},
+      {name:'蝉大师', url:'https://www.chandashi.com'},
+      {name:'SensorTower', url:'https://app.sensortower.com'},
+      {name:'新榜', url:'https://www.newrank.cn'},
+      {name:'蝉妈妈', url:'https://www.chanmama.com'},
+      {name:'飞瓜数据', url:'https://feigua.cn'},
+      {name:'国家网信办', url:'https://www.cac.gov.cn'},
+      {name:'阿里云文档', url:'https://help.aliyun.com'}
+    ],
+    tools:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'Gamma', url:'https://gamma.app'},
+      {name:'Canva', url:'https://www.canva.cn'},
+      {name:'神策分析', url:'https://www.sensorsdata.cn'},
+      {name:'Tableau', url:'https://www.tableau.com'},
+      {name:'Metabase', url:'https://www.metabase.com'},
+      {name:'GrowingIO', url:'https://www.growingio.com'},
+      {name:'HubSpot', url:'https://www.hubspot.com'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:2},
+      {name:'Claude', url:'https://claude.ai', tier:3}
+    ]
+  },
+  {
+    name:'29_运营策略文档', phase:6, highlight:false,
+    tplFile:'模板/29_运营策略文档.md',
+    support:[
+      {name:'渠道投放计划表', url:'支撑文档模板/S14_渠道投放计划表模板.md'},
+      {name:'内容日历', url:'支撑文档模板/S13_内容日历模板.md'},
+      {name:'活动SOP模板', url:'支撑文档模板/S23_活动SOP模板.md'},
+      {name:'数据看板制作指南', url:'支撑文档模板/S18_数据看板制作指南.md'}
+    ],
+    sites:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion模板库', url:'https://www.notion.so/templates'},
+      {name:'七麦数据', url:'https://www.qimai.cn'},
+      {name:'蝉大师', url:'https://www.chandashi.com'},
+      {name:'SensorTower', url:'https://app.sensortower.com'},
+      {name:'新榜', url:'https://www.newrank.cn'},
+      {name:'蝉妈妈', url:'https://www.chanmama.com'},
+      {name:'飞瓜数据', url:'https://feigua.cn'},
+      {name:'国家网信办', url:'https://www.cac.gov.cn'},
+      {name:'Tableau Gallery', url:'https://public.tableau.com/gallery/'}
+    ],
+    tools:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'Gamma', url:'https://gamma.app'},
+      {name:'Canva', url:'https://www.canva.cn'},
+      {name:'神策分析', url:'https://www.sensorsdata.cn'},
+      {name:'Tableau', url:'https://www.tableau.com'},
+      {name:'Metabase', url:'https://www.metabase.com'},
+      {name:'GrowingIO', url:'https://www.growingio.com'},
+      {name:'HubSpot', url:'https://www.hubspot.com'}
+    ],
+    models:[
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:1},
+      {name:'GPT', url:'https://chat.openai.com', tier:2},
+      {name:'豆包', url:'https://www.doubao.com', tier:3}
+    ]
+  },
+  {
+    name:'30_ASO应用商店材料', phase:6, highlight:false,
+    tplFile:'模板/30_ASO应用商店材料.md',
+    support:[
+      {name:'隐私政策文本模板', url:'支撑文档模板/S24_隐私政策文本模板.md'},
+      {name:'截图录屏制作规范', url:'支撑文档模板/S26_截图录屏制作规范.md'},
+      {name:'用户协议文本模板', url:'支撑文档模板/S25_用户协议文本模板.md'}
+    ],
+    sites:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion模板库', url:'https://www.notion.so/templates'},
+      {name:'七麦数据', url:'https://www.qimai.cn'},
+      {name:'蝉大师', url:'https://www.chandashi.com'},
+      {name:'SensorTower', url:'https://app.sensortower.com'},
+      {name:'新榜', url:'https://www.newrank.cn'},
+      {name:'蝉妈妈', url:'https://www.chanmama.com'},
+      {name:'飞瓜数据', url:'https://feigua.cn'},
+      {name:'国家网信办', url:'https://www.cac.gov.cn'},
+      {name:'阿里云文档', url:'https://help.aliyun.com'}
+    ],
+    tools:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'Gamma', url:'https://gamma.app'},
+      {name:'Canva', url:'https://www.canva.cn'},
+      {name:'ASO100', url:'https://aso100.com'},
+      {name:'七麦数据', url:'https://www.qimai.cn'},
+      {name:'Metabase', url:'https://www.metabase.com'},
+      {name:'GrowingIO', url:'https://www.growingio.com'},
+      {name:'HubSpot', url:'https://www.hubspot.com'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:2},
+      {name:'豆包', url:'https://www.doubao.com', tier:3}
+    ]
+  },
+  {
+    name:'31_项目汇报复盘材料', phase:6, highlight:false,
+    tplFile:'模板/31_项目汇报复盘材料.md',
+    support:[
+      {name:'数据看板制作指南', url:'支撑文档模板/S18_数据看板制作指南.md'},
+      {name:'AB实验报告模板', url:'支撑文档模板/S21_AB实验报告模板.md'},
+      {name:'活动SOP模板', url:'支撑文档模板/S23_活动SOP模板.md'}
+    ],
+    sites:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion模板库', url:'https://www.notion.so/templates'},
+      {name:'七麦数据', url:'https://www.qimai.cn'},
+      {name:'蝉大师', url:'https://www.chandashi.com'},
+      {name:'SensorTower', url:'https://app.sensortower.com'},
+      {name:'新榜', url:'https://www.newrank.cn'},
+      {name:'蝉妈妈', url:'https://www.chanmama.com'},
+      {name:'飞瓜数据', url:'https://feigua.cn'},
+      {name:'国家网信办', url:'https://www.cac.gov.cn'},
+      {name:'Tableau Gallery', url:'https://public.tableau.com/gallery/'}
+    ],
+    tools:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'Gamma', url:'https://gamma.app'},
+      {name:'Canva', url:'https://www.canva.cn'},
+      {name:'神策分析', url:'https://www.sensorsdata.cn'},
+      {name:'Tableau', url:'https://www.tableau.com'},
+      {name:'Metabase', url:'https://www.metabase.com'},
+      {name:'GrowingIO', url:'https://www.growingio.com'},
+      {name:'HubSpot', url:'https://www.hubspot.com'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:2},
+      {name:'Kimi', url:'https://kimi.moonshot.cn', tier:3}
+    ]
+  },
+  {
+    name:'32_AI合规与隐私文档', phase:6, highlight:false,
+    tplFile:'模板/32_AI合规与隐私文档.md',
+    support:[
+      {name:'隐私政策文本模板', url:'支撑文档模板/S24_隐私政策文本模板.md'},
+      {name:'用户协议文本模板', url:'支撑文档模板/S25_用户协议文本模板.md'},
+      {name:'FAQ知识库模板', url:'支撑文档模板/S22_FAQ知识库模板.md'}
+    ],
+    sites:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion模板库', url:'https://www.notion.so/templates'},
+      {name:'七麦数据', url:'https://www.qimai.cn'},
+      {name:'蝉大师', url:'https://www.chandashi.com'},
+      {name:'SensorTower', url:'https://app.sensortower.com'},
+      {name:'新榜', url:'https://www.newrank.cn'},
+      {name:'蝉妈妈', url:'https://www.chanmama.com'},
+      {name:'飞瓜数据', url:'https://feigua.cn'},
+      {name:'国家网信办', url:'https://www.cac.gov.cn'},
+      {name:'阿里云文档', url:'https://help.aliyun.com'}
+    ],
+    tools:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'Gamma', url:'https://gamma.app'},
+      {name:'Canva', url:'https://www.canva.cn'},
+      {name:'神策分析', url:'https://www.sensorsdata.cn'},
+      {name:'Tableau', url:'https://www.tableau.com'},
+      {name:'Metabase', url:'https://www.metabase.com'},
+      {name:'GrowingIO', url:'https://www.growingio.com'},
+      {name:'HubSpot', url:'https://www.hubspot.com'}
+    ],
+    models:[
+      {name:'GPT', url:'https://chat.openai.com', tier:1},
+      {name:'Claude', url:'https://claude.ai', tier:2},
+      {name:'Kimi', url:'https://kimi.moonshot.cn', tier:3}
+    ]
+  },
+  {
+    name:'33_数据分析周报月报', phase:6, highlight:false,
+    tplFile:'模板/33_数据分析周报月报.md',
+    support:[
+      {name:'数据看板制作指南', url:'支撑文档模板/S18_数据看板制作指南.md'},
+      {name:'AB实验报告模板', url:'支撑文档模板/S21_AB实验报告模板.md'},
+      {name:'数据采集方法指南', url:'支撑文档模板/S27_数据采集方法指南.md'},
+      {name:'埋点验收清单', url:'支撑文档模板/S10_埋点验收清单模板.md'}
+    ],
+    sites:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion模板库', url:'https://www.notion.so/templates'},
+      {name:'七麦数据', url:'https://www.qimai.cn'},
+      {name:'蝉大师', url:'https://www.chandashi.com'},
+      {name:'SensorTower', url:'https://app.sensortower.com'},
+      {name:'新榜', url:'https://www.newrank.cn'},
+      {name:'蝉妈妈', url:'https://www.chanmama.com'},
+      {name:'飞瓜数据', url:'https://feigua.cn'},
+      {name:'国家网信办', url:'https://www.cac.gov.cn'},
+      {name:'Tableau Gallery', url:'https://public.tableau.com/gallery/'}
+    ],
+    tools:[
+      {name:'GitBook', url:'https://www.gitbook.com'},
+      {name:'Notion', url:'https://www.notion.so'},
+      {name:'飞书文档', url:'https://www.feishu.cn'},
+      {name:'Gamma', url:'https://gamma.app'},
+      {name:'Canva', url:'https://www.canva.cn'},
+      {name:'神策分析', url:'https://www.sensorsdata.cn'},
+      {name:'Tableau', url:'https://www.tableau.com'},
+      {name:'Metabase', url:'https://www.metabase.com'},
+      {name:'GrowingIO', url:'https://www.growingio.com'},
+      {name:'HubSpot', url:'https://www.hubspot.com'}
+    ],
+    models:[
+      {name:'DeepSeek', url:'https://chat.deepseek.com', tier:1},
+      {name:'GPT', url:'https://chat.openai.com', tier:2},
+      {name:'Qwen', url:'https://tongyi.aliyun.com', tier:3}
+    ]
+  }
+];
+
+// Column config
+const COL_NAMES = { sites:'数据/报告网站', tools:'推荐工具', models:'推荐模型' };
+
+// ======= State =======
+let currentPhase = 'all';
+let currentEditCol = null;
+let editBuffer = {}; // temp storage during modal editing
+
+// ======= LocalStorage helpers =======
+function lsKey(docIdx, col) { return 'aipm_' + col + '_' + docIdx; }
+function lsGet(docIdx, col) { const v = localStorage.getItem(lsKey(docIdx, col)); return v ? JSON.parse(v) : null; }
+function lsSet(docIdx, col, val) { localStorage.setItem(lsKey(docIdx, col), JSON.stringify(val)); }
+
+function getAttachments(docIdx) {
+  const raw = localStorage.getItem('aipm_attach_' + docIdx);
+  return raw ? JSON.parse(raw) : [];
+}
+function setAttachments(docIdx, list) {
+  localStorage.setItem('aipm_attach_' + docIdx, JSON.stringify(list));
+}
+
+function getItems(docIdx, col) {
+  const saved = lsGet(docIdx, col);
+  return saved !== null ? saved : DOCS[docIdx][col];
+}
+
+// ======= Display name (strip prefix numbers) =======
+function displayName(name) {
+  return name.replace(/^\d{2}_/, '');
+}
+
+// ======= Escape HTML =======
+function escHtml(s) {
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+// ======= Render =======
+function render() {
+  const tbody = document.getElementById('docBody');
+  let html = '';
+  let lastPhase = 0;
+
+  DOCS.forEach((doc, idx) => {
+    if (currentPhase !== 'all' && doc.phase !== parseInt(currentPhase)) return;
+
+    if (doc.phase !== lastPhase) {
+      lastPhase = doc.phase;
+      const p = PHASES.find(pp => pp.id === doc.phase);
+      html += '<tr class="phase-header" data-phase="' + doc.phase + '"><td colspan="7">' + p.name + '</td></tr>';
+    }
+
+    const rowClass = doc.highlight ? ' class="row-highlight"' : '';
+    html += '<tr' + rowClass + ' data-idx="' + idx + '" data-phase="' + doc.phase + '">';
+
+    // Col 1: Name (clean display, link to template)
+    html += '<td style="font-weight:600"><a class="tpl-link" href="' + doc.tplFile + '" style="font-size:13px;font-weight:600">' + displayName(doc.name) + '</a></td>';
+
+    // Col 2: Template file
+    html += '<td><a class="tpl-link" href="' + doc.tplFile + '">' + doc.name.replace(/^\d{2}_/, '') + '.md</a></td>';
+
+    // Col 3: Support materials
+    const supports = getItems(idx, 'support');
+    html += '<td>';
+    supports.forEach(s => {
+      html += '<span class="support-chip"><a href="' + escHtml(s.url) + '">' + escHtml(s.name) + '</a></span> ';
+    });
+    html += '</td>';
+
+    // Col 4: Sites (show 3 + more)
+    html += '<td>' + renderLinkList(idx, 'sites', 'site-link') + '</td>';
+
+    // Col 5: Tools (show 3 + more)
+    html += '<td>' + renderLinkList(idx, 'tools', 'tool-link') + '</td>';
+
+    // Col 6: Models (sorted by tier)
+    const models = getItems(idx, 'models').slice().sort((a,b) => a.tier - b.tier);
+    html += '<td>';
+    models.forEach(m => {
+      const tierClass = 'model-tier-' + m.tier;
+      const prefix = m.tier === 1 ? '\u2B50 ' : '';
+      html += '<a class="model-badge ' + tierClass + '" href="' + escHtml(m.url) + '" target="_blank">' + prefix + escHtml(m.name) + '</a> ';
+    });
+    html += '</td>';
+
+    // Col 7: Attachments (folder icon + count badge)
+    const attachments = getAttachments(idx);
+    html += '<td>';
+    html += '<div class="attach-folder" onclick="openAttachPopup(event,' + idx + ')">';
+    html += '<span style="font-size:16px">\uD83D\uDCC1</span>';
+    if (attachments.length > 0) {
+      html += '<span class="badge">' + attachments.length + '</span>';
+    } else {
+      html += '<span style="color:#bbb;font-size:12px">0</span>';
+    }
+    html += '</div>';
+    html += '</td>';
+
+    html += '</tr>';
+  });
+
+  tbody.innerHTML = html;
+}
+
+function renderLinkList(docIdx, col, linkClass) {
+  const items = getItems(docIdx, col);
+  const show = items.slice(0, 3);
+  let html = '';
+  show.forEach(item => {
+    html += '<a class="' + linkClass + '" href="' + escHtml(item.url) + '" target="_blank">' + escHtml(item.name) + '</a><br>';
+  });
+  if (items.length > 3) {
+    html += '<span class="more-btn" onclick="openMorePopup(event,' + docIdx + ',\'' + col + '\')">+' + (items.length - 3) + ' \u66F4\u591A</span>';
+  }
+  return html;
+}
+
+// ======= Phase Filter =======
+document.getElementById('toolbar').addEventListener('click', e => {
+  if (e.target.tagName !== 'BUTTON' || !e.target.dataset.phase) return;
+  document.querySelectorAll('#toolbar button[data-phase]').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  currentPhase = e.target.dataset.phase;
+  render();
+});
+
+// ======= Popup System =======
+function positionPopup(ev, box) {
+  const rect = ev.target.getBoundingClientRect();
+  let top = rect.bottom + 8;
+  let left = rect.left;
+  // Adjust if too close to edges
+  if (left + 340 > window.innerWidth) left = window.innerWidth - 360;
+  if (left < 10) left = 10;
+  if (top + 360 > window.innerHeight) top = rect.top - 360;
+  if (top < 10) top = 10;
+  box.style.top = top + 'px';
+  box.style.left = left + 'px';
+}
+
+function closePopup() {
+  document.getElementById('popupOverlay').classList.remove('show');
+  document.getElementById('popupBox').style.display = 'none';
+}
+
+// ======= "More" Popup for Sites/Tools =======
+function openMorePopup(ev, docIdx, col) {
+  ev.stopPropagation();
+  const items = getItems(docIdx, col);
+  const title = col === 'sites' ? '\uD83C\uDF10 \u6570\u636E/\u62A5\u544A\u7F51\u7AD9' : '\uD83D\uDEE0\uFE0F \u63A8\u8350\u5DE5\u5177';
+  const colorClass = col === 'sites' ? 'site-link' : 'tool-link';
+
+  const box = document.getElementById('popupBox');
+  let html = '<div class="popup-header"><h4>' + title + ' - ' + displayName(DOCS[docIdx].name) + '</h4><button class="popup-close" onclick="closePopup()">&times;</button></div>';
+  html += '<div class="popup-body">';
+  items.forEach(item => {
+    html += '<div class="item-card"><a class="' + colorClass + '" href="' + escHtml(item.url) + '" target="_blank" style="font-size:13px">' + escHtml(item.name) + '</a><span style="font-size:11px;color:#aaa;margin-left:8px;flex-shrink:0">' + escHtml(item.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]) + '</span></div>';
+  });
+  html += '</div>';
+
+  box.innerHTML = html;
+  box.style.display = 'flex';
+  document.getElementById('popupOverlay').classList.add('show');
+  positionPopup(ev, box);
+}
+
+// ======= Attachment Popup =======
+function openAttachPopup(ev, docIdx) {
+  ev.stopPropagation();
+  const attachments = getAttachments(docIdx);
+
+  const box = document.getElementById('popupBox');
+  let html = '<div class="popup-header"><h4>\uD83D\uDCC1 \u9644\u4EF6 - ' + displayName(DOCS[docIdx].name) + '</h4><button class="popup-close" onclick="closePopup()">&times;</button></div>';
+  html += '<div class="popup-body" id="attachPopupBody">';
+  if (attachments.length === 0) {
+    html += '<div style="text-align:center;color:#bbb;padding:20px;font-size:13px">\u6682\u65E0\u9644\u4EF6</div>';
+  } else {
+    attachments.forEach((fn, fi) => {
+      html += '<div class="item-card"><a style="color:#555">' + escHtml(fn) + '</a><button class="del-btn" onclick="removeAttachFromPopup(' + docIdx + ',' + fi + ',event)" title="\u5220\u9664">&times;</button></div>';
+    });
+  }
+  html += '</div>';
+  html += '<div class="popup-footer"><div class="add-row">';
+  html += '<input type="file" id="popupFileInput" multiple style="flex:1;font-size:12px;border:1px solid #ddd;border-radius:6px;padding:4px 8px" onchange="handlePopupFileSelect(event,' + docIdx + ')">';
+  html += '</div></div>';
+
+  box.innerHTML = html;
+  box.style.display = 'flex';
+  document.getElementById('popupOverlay').classList.add('show');
+  positionPopup(ev, box);
+}
+
+function removeAttachFromPopup(docIdx, fileIdx, ev) {
+  ev.stopPropagation();
+  const list = getAttachments(docIdx);
+  list.splice(fileIdx, 1);
+  setAttachments(docIdx, list);
+  render();
+  // Refresh popup content
+  const body = document.getElementById('attachPopupBody');
+  if (body) {
+    let html = '';
+    const attachments = getAttachments(docIdx);
+    if (attachments.length === 0) {
+      html = '<div style="text-align:center;color:#bbb;padding:20px;font-size:13px">\u6682\u65E0\u9644\u4EF6</div>';
+    } else {
+      attachments.forEach((fn, fi) => {
+        html += '<div class="item-card"><a style="color:#555">' + escHtml(fn) + '</a><button class="del-btn" onclick="removeAttachFromPopup(' + docIdx + ',' + fi + ',event)" title="\u5220\u9664">&times;</button></div>';
+      });
+    }
+    body.innerHTML = html;
+  }
+  showToast('\u9644\u4EF6\u5DF2\u79FB\u9664');
+}
+
+function handlePopupFileSelect(ev, docIdx) {
+  const files = ev.target.files;
+  if (!files.length) return;
+  const list = getAttachments(docIdx);
+  for (let i = 0; i < files.length; i++) {
+    if (!list.includes(files[i].name)) {
+      list.push(files[i].name);
+    }
+  }
+  setAttachments(docIdx, list);
+  ev.target.value = '';
+  render();
+  // Refresh popup body
+  const body = document.getElementById('attachPopupBody');
+  if (body) {
+    let html = '';
+    list.forEach((fn, fi) => {
+      html += '<div class="item-card"><a style="color:#555">' + escHtml(fn) + '</a><button class="del-btn" onclick="removeAttachFromPopup(' + docIdx + ',' + fi + ',event)" title="\u5220\u9664">&times;</button></div>';
+    });
+    body.innerHTML = html;
+  }
+  showToast('\u9644\u4EF6\u5DF2\u6DFB\u52A0');
+}
+
+// ======= Column Edit Modal =======
+function openColModal(col) {
+  currentEditCol = col;
+  document.getElementById('colModalTitle').textContent = '\u7F16\u8F91\u5217: ' + COL_NAMES[col];
+  const body = document.getElementById('colModalBody');
+
+  // Deep copy current items into editBuffer
+  editBuffer = {};
+  DOCS.forEach((doc, idx) => {
+    editBuffer[idx] = JSON.parse(JSON.stringify(getItems(idx, col)));
+  });
+
+  renderModalBody(col);
+  document.getElementById('colModal').classList.add('show');
+}
+
+function renderModalBody(col) {
+  const body = document.getElementById('colModalBody');
+  let html = '';
+
+  DOCS.forEach((doc, idx) => {
+    const items = editBuffer[idx] || [];
+    // Sort alphabetically
+    items.sort((a,b) => a.name.localeCompare(b.name, 'zh-CN'));
+
+    html += '<div class="modal-row">';
+    html += '<div class="modal-row-label">' + displayName(doc.name) + '</div>';
+    html += '<div class="modal-row-content">';
+
+    // Render as chips
+    html += '<div class="modal-item-chips">';
+    items.forEach((item, i) => {
+      if (col === 'models') {
+        const tierLabel = item.tier === 1 ? '\u2B50\u6700\u63A8\u8350' : item.tier === 2 ? '\u9002\u7528' : '\u5907\u9009';
+        html += '<span class="modal-chip"><a href="' + escHtml(item.url) + '" target="_blank">' + escHtml(item.name) + '</a><span style="font-size:10px;color:#999">(' + tierLabel + ')</span><button class="chip-del" onclick="removeModalItem(' + idx + ',' + i + ')">&times;</button></span>';
+      } else {
+        html += '<span class="modal-chip"><a href="' + escHtml(item.url) + '" target="_blank">' + escHtml(item.name) + '</a><button class="chip-del" onclick="removeModalItem(' + idx + ',' + i + ')">&times;</button></span>';
+      }
+    });
+    html += '</div>';
+
+    // Add row
+    html += '<div class="modal-add-row">';
+    html += '<input class="name-input" placeholder="\u540D\u79F0" id="addName_' + idx + '">';
+    html += '<input class="url-input" placeholder="URL" id="addUrl_' + idx + '">';
+    if (col === 'models') {
+      html += '<select id="addTier_' + idx + '" style="padding:4px;border:1px solid #ddd;border-radius:4px;font-size:11px"><option value="1">\u2B50\u6700\u63A8\u8350</option><option value="2">\u9002\u7528</option><option value="3">\u5907\u9009</option></select>';
+    }
+    html += '<button onclick="addModalItem(' + idx + ')">\u6DFB\u52A0</button>';
+    html += '</div>';
+
+    html += '</div></div>';
+  });
+
+  body.innerHTML = html;
+}
+
+function removeModalItem(docIdx, itemIdx) {
+  editBuffer[docIdx].splice(itemIdx, 1);
+  renderModalBody(currentEditCol);
+}
+
+function addModalItem(docIdx) {
+  const nameInput = document.getElementById('addName_' + docIdx);
+  const urlInput = document.getElementById('addUrl_' + docIdx);
+  const name = nameInput.value.trim();
+  const url = urlInput.value.trim();
+  if (!name) { nameInput.focus(); return; }
+
+  const item = { name, url: url || '#' };
+  if (currentEditCol === 'models') {
+    const tierSelect = document.getElementById('addTier_' + docIdx);
+    item.tier = parseInt(tierSelect.value);
+  }
+
+  editBuffer[docIdx].push(item);
+  nameInput.value = '';
+  urlInput.value = '';
+  renderModalBody(currentEditCol);
+}
+
+function closeColModal() {
+  document.getElementById('colModal').classList.remove('show');
+  currentEditCol = null;
+  editBuffer = {};
+}
+
+function saveColModal() {
+  Object.keys(editBuffer).forEach(idx => {
+    lsSet(parseInt(idx), currentEditCol, editBuffer[idx]);
+  });
+  closeColModal();
+  render();
+  showToast('\u5DF2\u4FDD\u5B58\u66F4\u6539');
+}
+
+// Close modal on overlay click
+document.getElementById('colModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('colModal')) closeColModal();
+});
+
+// ======= Toast =======
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+
+// ======= Init =======
+render();
+</script>
+</body>
+</html>
