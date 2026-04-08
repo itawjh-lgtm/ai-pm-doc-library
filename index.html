@@ -1885,10 +1885,7 @@ function renderDragItem(item, idx, col, docIdx) {
   let html = '<div class="item-card" draggable="true" data-idx="' + idx + '">';
   html += '<span class="drag-handle" title="\u62D6\u62FD\u6392\u5E8F">\u2630</span>';
   if (col === 'support') {
-    const hasFile = item.fileName;
-    const icon = hasFile ? '\uD83D\uDCCE ' : '';
-    html += '<span style="font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#555">' + icon + escHtml(item.name) + '</span>';
-    if (hasFile) html += '<span style="font-size:9px;color:#aaa;margin:0 4px;flex-shrink:0">' + escHtml(item.fileName) + '</span>';
+    html += '<span style="font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#555">' + escHtml(item.name) + '</span>';
   } else {
     const domain = item.url && item.url !== '#' ? item.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : '';
     html += '<a href="' + escHtml(item.url) + '" target="_blank" style="color:inherit;text-decoration:none;font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(item.name) + '</a>';
