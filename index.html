@@ -308,7 +308,8 @@ a.site-link:hover, a.tool-link:hover { text-decoration:underline; }
 <!-- Toast -->
 <div class="toast" id="toast"></div>
 
-<!-- Supabase SDK (async, non-blocking) -->
+<!-- Supabase SDK (local, no CDN dependency) -->
+<script src="supabase.min.js"></script>
 <script>
 // ======= Data =======
 const PHASES = [
@@ -1620,33 +1621,11 @@ const COL_ICONS = { support:'\uD83D\uDCCE', sites:'\uD83C\uDF10', tools:'\uD83D\
 const SUPABASE_URL = 'https://zycouechqtuvfohsvfmr.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp5Y291ZWNocXR1dmZvaHN2Zm1yIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU1NjM2MzAsImV4cCI6MjA5MTEzOTYzMH0.xegonQgs02E0UOV7MEZ2Xzpv4cEy_r0qEGNSMmknfx0';
 let supabase = null;
-
-// Load Supabase SDK asynchronously (non-blocking)
-function loadSupabaseSDK() {
-  return new Promise((resolve) => {
-    const cdns = [
-      'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js',
-      'https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.min.js'
-    ];
-    let tried = 0;
-    function tryLoad() {
-      if (tried >= cdns.length) { resolve(false); return; }
-      const s = document.createElement('script');
-      s.src = cdns[tried];
-      s.onload = () => {
-        try {
-          supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
-          resolve(true);
-        } catch(e) { tried++; tryLoad(); }
-      };
-      s.onerror = () => { tried++; tryLoad(); };
-      // Timeout after 5 seconds per CDN
-      setTimeout(() => { if (!supabase) { s.onload = null; s.onerror = null; tried++; tryLoad(); } }, 5000);
-      document.head.appendChild(s);
-    }
-    tryLoad();
-  });
-}
+try {
+  if (window.supabase && window.supabase.createClient) {
+    supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
+  }
+} catch(e) { console.warn('Supabase init failed:', e); }
 let currentUser = null;
 let cloudData = {}; // cached cloud data
 
@@ -2417,29 +2396,27 @@ function showToast(msg) {
 }
 
 // ======= Init =======
-// Render immediately, then load Supabase in background
-updateAuthUI();
-render();
-
-loadSupabaseSDK().then(async (ok) => {
-  if (!ok || !supabase) { console.warn('Supabase unavailable, localStorage only'); return; }
-  try {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (session && session.user) {
-      await onAuthStateChange(session.user);
-    }
-    supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_OUT') {
-        currentUser = null;
-        cloudData = {};
-        updateAuthUI();
-        render();
+// Init
+(async function init() {
+  if (supabase) {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session && session.user) {
+        await onAuthStateChange(session.user);
       }
-    });
-  } catch(e) {
-    console.warn('Supabase auth init failed:', e);
+      supabase.auth.onAuthStateChange((event, session) => {
+        if (event === 'SIGNED_OUT') {
+          currentUser = null;
+          cloudData = {};
+          updateAuthUI();
+          render();
+        }
+      });
+    } catch(e) { console.warn('Auth init failed:', e); }
   }
-});
+  updateAuthUI();
+  render();
+})();
 
 </script>
 </body>
