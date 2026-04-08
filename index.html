@@ -119,6 +119,30 @@ a.site-link:hover, a.tool-link:hover { text-decoration:underline; }
 .toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:10px 28px; border-radius:8px; font-size:13px; z-index:2000; opacity:0; transition:opacity .3s; pointer-events:none; }
 .toast.show { opacity:1; }
 
+/* Drag reorder */
+.drag-handle { cursor:grab; color:#bbb; font-size:14px; margin-right:6px; user-select:none; flex-shrink:0; }
+.drag-handle:active { cursor:grabbing; }
+.item-card[draggable="true"] { transition:background .15s,opacity .15s; }
+.item-card.dragging { opacity:.4; background:#e8eaff; }
+.item-card.drag-over { border-top:2px solid #667eea; margin-top:-2px; }
+
+/* Popup section title */
+.popup-section-title { font-size:11px; color:#999; font-weight:600; padding:8px 0 4px; margin-top:4px; text-transform:uppercase; letter-spacing:1px; border-bottom:1px solid #f0f0f0; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+.popup-section-title:first-child { margin-top:0; }
+
+/* API config */
+.api-config-btn { padding:2px 8px; border:1px solid #e8e8e8; border-radius:4px; font-size:10px; color:#667eea; cursor:pointer; background:#f8f9ff; white-space:nowrap; margin-left:auto; flex-shrink:0; }
+.api-config-btn:hover { background:#eef0ff; border-color:#667eea; }
+.api-config-panel { background:#f8f9fc; border:1px solid #e8e8e8; border-radius:6px; padding:8px 10px; margin:4px 0 8px 20px; font-size:11px; }
+.api-config-panel label { display:block; color:#888; font-size:10px; margin-bottom:2px; margin-top:6px; }
+.api-config-panel label:first-child { margin-top:0; }
+.api-config-panel input { width:100%; padding:4px 8px; border:1px solid #ddd; border-radius:4px; font-size:11px; font-family:monospace; }
+.api-config-panel .api-save-btn { margin-top:6px; padding:3px 12px; border:none; border-radius:4px; background:#667eea; color:#fff; cursor:pointer; font-size:10px; }
+
+/* Popup editable footer */
+.popup-footer .add-row { display:flex; gap:6px; flex-wrap:wrap; }
+.popup-footer .add-row select { padding:4px 6px; border:1px solid #ddd; border-radius:6px; font-size:11px; }
+
 /* Responsive */
 @media (max-width:768px) {
   .container { padding:10px; }
@@ -162,7 +186,7 @@ a.site-link:hover, a.tool-link:hover { text-decoration:underline; }
         <tr>
           <th style="min-width:170px">文档名称</th>
           <th>通用模板</th>
-          <th>补充支撑文档</th>
+          <th>补充支撑文档 <button class="col-edit-btn" onclick="openColModal('support')" title="编辑此列">&#9998;</button></th>
           <th>数据/报告网站 <button class="col-edit-btn" onclick="openColModal('sites')" title="编辑此列">&#9998;</button></th>
           <th>推荐工具 <button class="col-edit-btn" onclick="openColModal('tools')" title="编辑此列">&#9998;</button></th>
           <th>推荐模型 <button class="col-edit-btn" onclick="openColModal('models')" title="编辑此列">&#9998;</button></th>
@@ -1500,12 +1524,15 @@ const DOCS = [
 ];
 
 // Column config
-const COL_NAMES = { sites:'数据/报告网站', tools:'推荐工具', models:'推荐模型' };
+const COL_NAMES = { support:'补充支撑文档', sites:'数据/报告网站', tools:'推荐工具', models:'推荐模型' };
+const COL_ICONS = { support:'\uD83D\uDCCE', sites:'\uD83C\uDF10', tools:'\uD83D\uDEE0\uFE0F', models:'\uD83E\uDD16' };
 
 // ======= State =======
 let currentPhase = 'all';
 let currentEditCol = null;
-let editBuffer = {}; // temp storage during modal editing
+let editBuffer = {};
+let popupState = { docIdx:null, col:null }; // track current popup context
+let dragState = { fromIdx:null }; // drag reorder state
 
 // ======= LocalStorage helpers =======
 function lsKey(docIdx, col) { return 'aipm_' + col + '_' + docIdx; }
@@ -1523,6 +1550,15 @@ function setAttachments(docIdx, list) {
 function getItems(docIdx, col) {
   const saved = lsGet(docIdx, col);
   return saved !== null ? saved : DOCS[docIdx][col];
+}
+
+// API config storage
+function getApiConfig(docIdx, modelName) {
+  const raw = localStorage.getItem('aipm_api_' + docIdx + '_' + modelName);
+  return raw ? JSON.parse(raw) : { apiKey:'', endpoint:'' };
+}
+function setApiConfig(docIdx, modelName, config) {
+  localStorage.setItem('aipm_api_' + docIdx + '_' + modelName, JSON.stringify(config));
 }
 
 // ======= Display name (strip prefix numbers) =======
@@ -1555,19 +1591,14 @@ function render() {
     const rowClass = doc.highlight ? ' class="row-highlight"' : '';
     html += '<tr' + rowClass + ' data-idx="' + idx + '" data-phase="' + doc.phase + '">';
 
-    // Col 1: Name (clean display, link to template)
+    // Col 1: Name
     html += '<td style="font-weight:600"><a class="tpl-link" href="' + doc.tplFile + '" style="font-size:13px;font-weight:600">' + displayName(doc.name) + '</a></td>';
 
     // Col 2: Template file
     html += '<td><a class="tpl-link" href="' + doc.tplFile + '">' + doc.name.replace(/^\d{2}_/, '') + '.md</a></td>';
 
-    // Col 3: Support materials
-    const supports = getItems(idx, 'support');
-    html += '<td>';
-    supports.forEach(s => {
-      html += '<span class="support-chip"><a href="' + escHtml(s.url) + '">' + escHtml(s.name) + '</a></span> ';
-    });
-    html += '</td>';
+    // Col 3: Support materials (show 3 + more)
+    html += '<td>' + renderChipList(idx, 'support') + '</td>';
 
     // Col 4: Sites (show 3 + more)
     html += '<td>' + renderLinkList(idx, 'sites', 'site-link') + '</td>';
@@ -1575,17 +1606,10 @@ function render() {
     // Col 5: Tools (show 3 + more)
     html += '<td>' + renderLinkList(idx, 'tools', 'tool-link') + '</td>';
 
-    // Col 6: Models (sorted by tier)
-    const models = getItems(idx, 'models').slice().sort((a,b) => a.tier - b.tier);
-    html += '<td>';
-    models.forEach(m => {
-      const tierClass = 'model-tier-' + m.tier;
-      const prefix = m.tier === 1 ? '\u2B50 ' : '';
-      html += '<a class="model-badge ' + tierClass + '" href="' + escHtml(m.url) + '" target="_blank">' + prefix + escHtml(m.name) + '</a> ';
-    });
-    html += '</td>';
+    // Col 6: Models (show 3 + more, sorted by tier)
+    html += '<td>' + renderModelList(idx) + '</td>';
 
-    // Col 7: Attachments (folder icon + count badge)
+    // Col 7: Attachments
     const attachments = getAttachments(idx);
     html += '<td>';
     html += '<div class="attach-folder" onclick="openAttachPopup(event,' + idx + ')">';
@@ -1604,6 +1628,21 @@ function render() {
   tbody.innerHTML = html;
 }
 
+function renderChipList(docIdx, col) {
+  const items = getItems(docIdx, col);
+  const show = items.slice(0, 3);
+  let html = '';
+  show.forEach(s => {
+    html += '<span class="support-chip"><a href="' + escHtml(s.url) + '">' + escHtml(s.name) + '</a></span> ';
+  });
+  if (items.length > 3) {
+    html += '<span class="more-btn" onclick="openEditablePopup(event,' + docIdx + ',\'' + col + '\')">+' + (items.length - 3) + ' \u66F4\u591A</span>';
+  } else if (items.length > 0) {
+    html += '<span class="more-btn" onclick="openEditablePopup(event,' + docIdx + ',\'' + col + '\')" style="margin-left:2px">\u7F16\u8F91</span>';
+  }
+  return html;
+}
+
 function renderLinkList(docIdx, col, linkClass) {
   const items = getItems(docIdx, col);
   const show = items.slice(0, 3);
@@ -1612,7 +1651,22 @@ function renderLinkList(docIdx, col, linkClass) {
     html += '<a class="' + linkClass + '" href="' + escHtml(item.url) + '" target="_blank">' + escHtml(item.name) + '</a><br>';
   });
   if (items.length > 3) {
-    html += '<span class="more-btn" onclick="openMorePopup(event,' + docIdx + ',\'' + col + '\')">+' + (items.length - 3) + ' \u66F4\u591A</span>';
+    html += '<span class="more-btn" onclick="openEditablePopup(event,' + docIdx + ',\'' + col + '\')">+' + (items.length - 3) + ' \u66F4\u591A</span>';
+  }
+  return html;
+}
+
+function renderModelList(docIdx) {
+  const models = getItems(docIdx, 'models').slice().sort((a,b) => a.tier - b.tier);
+  const show = models.slice(0, 3);
+  let html = '';
+  show.forEach(m => {
+    const tierClass = 'model-tier-' + m.tier;
+    const prefix = m.tier === 1 ? '\u2B50 ' : '';
+    html += '<a class="model-badge ' + tierClass + '" href="' + escHtml(m.url) + '" target="_blank">' + prefix + escHtml(m.name) + '</a> ';
+  });
+  if (models.length > 3) {
+    html += '<span class="more-btn" onclick="openEditablePopup(event,' + docIdx + ',\'models\')">+' + (models.length - 3) + ' \u66F4\u591A</span>';
   }
   return html;
 }
@@ -1631,10 +1685,9 @@ function positionPopup(ev, box) {
   const rect = ev.target.getBoundingClientRect();
   let top = rect.bottom + 8;
   let left = rect.left;
-  // Adjust if too close to edges
-  if (left + 340 > window.innerWidth) left = window.innerWidth - 360;
+  if (left + 380 > window.innerWidth) left = window.innerWidth - 400;
   if (left < 10) left = 10;
-  if (top + 360 > window.innerHeight) top = rect.top - 360;
+  if (top + 420 > window.innerHeight) top = rect.top - 420;
   if (top < 10) top = 10;
   box.style.top = top + 'px';
   box.style.left = left + 'px';
@@ -1643,32 +1696,229 @@ function positionPopup(ev, box) {
 function closePopup() {
   document.getElementById('popupOverlay').classList.remove('show');
   document.getElementById('popupBox').style.display = 'none';
+  popupState = { docIdx:null, col:null };
 }
 
-// ======= "More" Popup for Sites/Tools =======
-function openMorePopup(ev, docIdx, col) {
+// ======= Unified Editable Popup (sites/tools/support/models) =======
+function openEditablePopup(ev, docIdx, col) {
   ev.stopPropagation();
-  const items = getItems(docIdx, col);
-  const title = col === 'sites' ? '\uD83C\uDF10 \u6570\u636E/\u62A5\u544A\u7F51\u7AD9' : '\uD83D\uDEE0\uFE0F \u63A8\u8350\u5DE5\u5177';
-  const colorClass = col === 'sites' ? 'site-link' : 'tool-link';
+  popupState = { docIdx, col };
+  const items = JSON.parse(JSON.stringify(getItems(docIdx, col)));
+  // For models, sort by tier
+  if (col === 'models') items.sort((a,b) => a.tier - b.tier);
 
   const box = document.getElementById('popupBox');
-  let html = '<div class="popup-header"><h4>' + title + ' - ' + displayName(DOCS[docIdx].name) + '</h4><button class="popup-close" onclick="closePopup()">&times;</button></div>';
-  html += '<div class="popup-body">';
-  items.forEach(item => {
-    html += '<div class="item-card"><a class="' + colorClass + '" href="' + escHtml(item.url) + '" target="_blank" style="font-size:13px">' + escHtml(item.name) + '</a><span style="font-size:11px;color:#aaa;margin-left:8px;flex-shrink:0">' + escHtml(item.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]) + '</span></div>';
-  });
+  box.style.minWidth = col === 'models' ? '340px' : '300px';
+  box.style.maxWidth = col === 'models' ? '440px' : '400px';
+
+  let html = '<div class="popup-header"><h4>' + COL_ICONS[col] + ' ' + COL_NAMES[col] + ' - ' + displayName(DOCS[docIdx].name) + '</h4><button class="popup-close" onclick="closePopup()">&times;</button></div>';
+  html += '<div class="popup-body" id="editPopupBody">';
+  html += renderPopupItems(items, col, docIdx);
   html += '</div>';
+
+  // Add form footer
+  html += '<div class="popup-footer"><div class="add-row">';
+  html += '<input id="popupAddName" placeholder="\u540D\u79F0" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px">';
+  html += '<input id="popupAddUrl" placeholder="URL" style="flex:1.5;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px">';
+  if (col === 'models') {
+    html += '<select id="popupAddTier" style="padding:6px;border:1px solid #ddd;border-radius:6px;font-size:11px"><option value="1">\u2B50\u6700\u4F73</option><option value="2">\u9002\u7528</option><option value="3">\u5907\u9009</option></select>';
+  }
+  html += '<button class="add-btn" onclick="addPopupItem()">\u6DFB\u52A0</button>';
+  html += '</div></div>';
 
   box.innerHTML = html;
   box.style.display = 'flex';
   document.getElementById('popupOverlay').classList.add('show');
   positionPopup(ev, box);
+  initDragHandlers();
+}
+
+function renderPopupItems(items, col, docIdx) {
+  let html = '';
+  if (col === 'models') {
+    // Group by tier with section headers
+    const tiers = [
+      { id:1, label:'\u2B50 \u6700\u4F73\u63A8\u8350', color:'#f59e0b' },
+      { id:2, label:'\u{1F7E6} \u9002\u7528', color:'#3b82f6' },
+      { id:3, label:'\u26AA \u5907\u9009', color:'#9ca3af' }
+    ];
+    tiers.forEach(tier => {
+      const tierItems = items.filter(m => m.tier === tier.id);
+      if (tierItems.length === 0) return;
+      html += '<div class="popup-section-title"><span style="color:' + tier.color + '">\u25CF</span> ' + tier.label + ' (' + tierItems.length + ')</div>';
+      tierItems.forEach((item, i) => {
+        const realIdx = items.indexOf(item);
+        html += renderDragItem(item, realIdx, col, docIdx);
+      });
+    });
+  } else {
+    // Simple list with section title
+    const sectionName = col === 'sites' ? '\u7F51\u7AD9\u5217\u8868' : col === 'tools' ? '\u5DE5\u5177\u5217\u8868' : '\u652F\u6491\u6587\u6863';
+    html += '<div class="popup-section-title">' + sectionName + ' (' + items.length + ')</div>';
+    items.forEach((item, i) => {
+      html += renderDragItem(item, i, col, docIdx);
+    });
+  }
+  return html;
+}
+
+function renderDragItem(item, idx, col, docIdx) {
+  const domain = item.url && item.url !== '#' ? item.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : '';
+  let html = '<div class="item-card" draggable="true" data-idx="' + idx + '">';
+  html += '<span class="drag-handle" title="\u62D6\u62FD\u6392\u5E8F">\u2630</span>';
+  if (col === 'support') {
+    html += '<a href="' + escHtml(item.url) + '" style="color:#667eea;font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(item.name) + '</a>';
+  } else {
+    html += '<a href="' + escHtml(item.url) + '" target="_blank" style="color:inherit;text-decoration:none;font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(item.name) + '</a>';
+    if (domain) html += '<span style="font-size:10px;color:#aaa;margin:0 6px;flex-shrink:0">' + escHtml(domain) + '</span>';
+  }
+  if (col === 'models') {
+    const apiConf = getApiConfig(docIdx, item.name);
+    const hasApi = apiConf.apiKey || apiConf.endpoint;
+    html += '<button class="api-config-btn" onclick="toggleApiPanel(' + idx + ',event)" style="' + (hasApi ? 'color:#27ae60;border-color:#27ae60' : '') + '">' + (hasApi ? '\u2705 API' : '\u2699\uFE0F API') + '</button>';
+  }
+  html += '<button class="del-btn" onclick="removePopupItem(' + idx + ',event)" title="\u5220\u9664">&times;</button>';
+  html += '</div>';
+  if (col === 'models') {
+    html += '<div class="api-config-panel" id="apiPanel_' + idx + '" style="display:none">';
+    const apiConf = getApiConfig(docIdx, item.name);
+    html += '<label>API Key</label><input id="apiKey_' + idx + '" value="' + escHtml(apiConf.apiKey) + '" placeholder="\u8F93\u5165API Key...">';
+    html += '<label>API Endpoint</label><input id="apiEndpoint_' + idx + '" value="' + escHtml(apiConf.endpoint) + '" placeholder="https://api.example.com/v1">';
+    html += '<button class="api-save-btn" onclick="saveApiConfig(' + idx + ',event)">\u4FDD\u5B58\u914D\u7F6E</button>';
+    html += '</div>';
+  }
+  return html;
+}
+
+function toggleApiPanel(idx, ev) {
+  ev.stopPropagation();
+  const panel = document.getElementById('apiPanel_' + idx);
+  if (panel) panel.style.display = panel.style.display === 'none' ? 'block' : 'none';
+}
+
+function saveApiConfig(idx, ev) {
+  ev.stopPropagation();
+  const { docIdx, col } = popupState;
+  const items = JSON.parse(JSON.stringify(getItems(docIdx, col)));
+  if (col === 'models') items.sort((a,b) => a.tier - b.tier);
+  const item = items[idx];
+  if (!item) return;
+  const apiKey = document.getElementById('apiKey_' + idx).value.trim();
+  const endpoint = document.getElementById('apiEndpoint_' + idx).value.trim();
+  setApiConfig(docIdx, item.name, { apiKey, endpoint });
+  showToast('API\u914D\u7F6E\u5DF2\u4FDD\u5B58: ' + item.name);
+  // Update button style
+  const panel = document.getElementById('apiPanel_' + idx);
+  if (panel) panel.style.display = 'none';
+  refreshPopupBody();
+}
+
+function removePopupItem(idx, ev) {
+  ev.stopPropagation();
+  const { docIdx, col } = popupState;
+  const items = JSON.parse(JSON.stringify(getItems(docIdx, col)));
+  if (col === 'models') items.sort((a,b) => a.tier - b.tier);
+  items.splice(idx, 1);
+  // For models, restore original order before saving
+  lsSet(docIdx, col, items);
+  render();
+  refreshPopupBody();
+  showToast('\u5DF2\u5220\u9664');
+}
+
+function addPopupItem() {
+  const { docIdx, col } = popupState;
+  const nameInput = document.getElementById('popupAddName');
+  const urlInput = document.getElementById('popupAddUrl');
+  const name = nameInput.value.trim();
+  const url = urlInput.value.trim();
+  if (!name) { nameInput.focus(); return; }
+
+  const items = JSON.parse(JSON.stringify(getItems(docIdx, col)));
+  const item = { name, url: url || '#' };
+  if (col === 'models') {
+    const tierSelect = document.getElementById('popupAddTier');
+    item.tier = parseInt(tierSelect.value);
+  }
+  items.push(item);
+  lsSet(docIdx, col, items);
+  nameInput.value = '';
+  urlInput.value = '';
+  render();
+  refreshPopupBody();
+  showToast('\u5DF2\u6DFB\u52A0: ' + name);
+}
+
+function refreshPopupBody() {
+  const { docIdx, col } = popupState;
+  if (docIdx === null) return;
+  const body = document.getElementById('editPopupBody');
+  if (!body) return;
+  const items = JSON.parse(JSON.stringify(getItems(docIdx, col)));
+  if (col === 'models') items.sort((a,b) => a.tier - b.tier);
+  body.innerHTML = renderPopupItems(items, col, docIdx);
+  initDragHandlers();
+}
+
+// ======= Drag & Drop Reorder =======
+function initDragHandlers() {
+  const body = document.getElementById('editPopupBody');
+  if (!body) return;
+  const cards = body.querySelectorAll('.item-card[draggable]');
+  cards.forEach(card => {
+    card.addEventListener('dragstart', onDragStart);
+    card.addEventListener('dragover', onDragOver);
+    card.addEventListener('dragleave', onDragLeave);
+    card.addEventListener('drop', onDrop);
+    card.addEventListener('dragend', onDragEnd);
+  });
+}
+
+function onDragStart(e) {
+  dragState.fromIdx = parseInt(e.currentTarget.dataset.idx);
+  e.currentTarget.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function onDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  e.currentTarget.classList.add('drag-over');
+}
+
+function onDragLeave(e) {
+  e.currentTarget.classList.remove('drag-over');
+}
+
+function onDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const toIdx = parseInt(e.currentTarget.dataset.idx);
+  const fromIdx = dragState.fromIdx;
+  if (fromIdx === toIdx || fromIdx === null) return;
+
+  const { docIdx, col } = popupState;
+  const items = JSON.parse(JSON.stringify(getItems(docIdx, col)));
+  if (col === 'models') items.sort((a,b) => a.tier - b.tier);
+
+  // Move item
+  const [moved] = items.splice(fromIdx, 1);
+  items.splice(toIdx, 0, moved);
+  lsSet(docIdx, col, items);
+  render();
+  refreshPopupBody();
+}
+
+function onDragEnd(e) {
+  e.currentTarget.classList.remove('dragging');
+  dragState.fromIdx = null;
+  document.querySelectorAll('.item-card.drag-over').forEach(el => el.classList.remove('drag-over'));
 }
 
 // ======= Attachment Popup =======
 function openAttachPopup(ev, docIdx) {
   ev.stopPropagation();
+  popupState = { docIdx, col:'attach' };
   const attachments = getAttachments(docIdx);
 
   const box = document.getElementById('popupBox');
@@ -1678,7 +1928,7 @@ function openAttachPopup(ev, docIdx) {
     html += '<div style="text-align:center;color:#bbb;padding:20px;font-size:13px">\u6682\u65E0\u9644\u4EF6</div>';
   } else {
     attachments.forEach((fn, fi) => {
-      html += '<div class="item-card"><a style="color:#555">' + escHtml(fn) + '</a><button class="del-btn" onclick="removeAttachFromPopup(' + docIdx + ',' + fi + ',event)" title="\u5220\u9664">&times;</button></div>';
+      html += '<div class="item-card"><a style="color:#555;flex:1;font-size:12px">' + escHtml(fn) + '</a><button class="del-btn" onclick="removeAttachFromPopup(' + docIdx + ',' + fi + ',event)" title="\u5220\u9664">&times;</button></div>';
     });
   }
   html += '</div>';
@@ -1698,7 +1948,6 @@ function removeAttachFromPopup(docIdx, fileIdx, ev) {
   list.splice(fileIdx, 1);
   setAttachments(docIdx, list);
   render();
-  // Refresh popup content
   const body = document.getElementById('attachPopupBody');
   if (body) {
     let html = '';
@@ -1707,7 +1956,7 @@ function removeAttachFromPopup(docIdx, fileIdx, ev) {
       html = '<div style="text-align:center;color:#bbb;padding:20px;font-size:13px">\u6682\u65E0\u9644\u4EF6</div>';
     } else {
       attachments.forEach((fn, fi) => {
-        html += '<div class="item-card"><a style="color:#555">' + escHtml(fn) + '</a><button class="del-btn" onclick="removeAttachFromPopup(' + docIdx + ',' + fi + ',event)" title="\u5220\u9664">&times;</button></div>';
+        html += '<div class="item-card"><a style="color:#555;flex:1;font-size:12px">' + escHtml(fn) + '</a><button class="del-btn" onclick="removeAttachFromPopup(' + docIdx + ',' + fi + ',event)" title="\u5220\u9664">&times;</button></div>';
       });
     }
     body.innerHTML = html;
@@ -1720,19 +1969,16 @@ function handlePopupFileSelect(ev, docIdx) {
   if (!files.length) return;
   const list = getAttachments(docIdx);
   for (let i = 0; i < files.length; i++) {
-    if (!list.includes(files[i].name)) {
-      list.push(files[i].name);
-    }
+    if (!list.includes(files[i].name)) list.push(files[i].name);
   }
   setAttachments(docIdx, list);
   ev.target.value = '';
   render();
-  // Refresh popup body
   const body = document.getElementById('attachPopupBody');
   if (body) {
     let html = '';
     list.forEach((fn, fi) => {
-      html += '<div class="item-card"><a style="color:#555">' + escHtml(fn) + '</a><button class="del-btn" onclick="removeAttachFromPopup(' + docIdx + ',' + fi + ',event)" title="\u5220\u9664">&times;</button></div>';
+      html += '<div class="item-card"><a style="color:#555;flex:1;font-size:12px">' + escHtml(fn) + '</a><button class="del-btn" onclick="removeAttachFromPopup(' + docIdx + ',' + fi + ',event)" title="\u5220\u9664">&times;</button></div>';
     });
     body.innerHTML = html;
   }
@@ -1743,9 +1989,7 @@ function handlePopupFileSelect(ev, docIdx) {
 function openColModal(col) {
   currentEditCol = col;
   document.getElementById('colModalTitle').textContent = '\u7F16\u8F91\u5217: ' + COL_NAMES[col];
-  const body = document.getElementById('colModalBody');
 
-  // Deep copy current items into editBuffer
   editBuffer = {};
   DOCS.forEach((doc, idx) => {
     editBuffer[idx] = JSON.parse(JSON.stringify(getItems(idx, col)));
@@ -1761,14 +2005,12 @@ function renderModalBody(col) {
 
   DOCS.forEach((doc, idx) => {
     const items = editBuffer[idx] || [];
-    // Sort alphabetically
-    items.sort((a,b) => a.name.localeCompare(b.name, 'zh-CN'));
+    if (col !== 'models') items.sort((a,b) => a.name.localeCompare(b.name, 'zh-CN'));
 
     html += '<div class="modal-row">';
     html += '<div class="modal-row-label">' + displayName(doc.name) + '</div>';
     html += '<div class="modal-row-content">';
 
-    // Render as chips
     html += '<div class="modal-item-chips">';
     items.forEach((item, i) => {
       if (col === 'models') {
@@ -1780,7 +2022,6 @@ function renderModalBody(col) {
     });
     html += '</div>';
 
-    // Add row
     html += '<div class="modal-add-row">';
     html += '<input class="name-input" placeholder="\u540D\u79F0" id="addName_' + idx + '">';
     html += '<input class="url-input" placeholder="URL" id="addUrl_' + idx + '">';
@@ -1835,7 +2076,6 @@ function saveColModal() {
   showToast('\u5DF2\u4FDD\u5B58\u66F4\u6539');
 }
 
-// Close modal on overlay click
 document.getElementById('colModal').addEventListener('click', e => {
   if (e.target === document.getElementById('colModal')) closeColModal();
 });
