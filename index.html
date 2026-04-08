@@ -1677,8 +1677,12 @@ function renderChipList(docIdx) {
   const items = getItems(docIdx, 'support');
   const show = items.slice(0, 3);
   let html = '';
-  show.forEach(s => {
-    html += '<span class="support-chip">' + escHtml(s.name) + '</span> ';
+  show.forEach((s, i) => {
+    if (s.url) {
+      html += '<span class="support-chip"><a href="javascript:void(0)" onclick="openSupportDoc(' + docIdx + ',' + i + ')" style="color:#667eea;text-decoration:none;cursor:pointer">' + escHtml(s.name) + '</a></span> ';
+    } else {
+      html += '<span class="support-chip" style="cursor:pointer" onclick="openSupportDoc(' + docIdx + ',' + i + ')">' + escHtml(s.name) + '</span> ';
+    }
   });
   const extra = items.length > 3 ? '+' + (items.length - 3) + ' ' : '';
   html += '<span class="more-btn" onclick="openEditablePopup(event,' + docIdx + ',\'support\')">' + extra + '\u66F4\u591A</span>';
@@ -1756,6 +1760,42 @@ async function openTplEditor(docIdx) {
   document.getElementById('tplModal').classList.add('show');
 }
 
+async function openSupportDoc(docIdx, itemIdx) {
+  const items = getItems(docIdx, 'support');
+  const item = items[itemIdx];
+  if (!item) return;
+  document.getElementById('tplTitle').textContent = '\uD83D\uDCDD ' + item.name;
+  const editor = document.getElementById('tplEditor');
+  const status = document.getElementById('tplStatus');
+  currentTplIdx = 'support_' + docIdx + '_' + itemIdx;
+
+  const saved = localStorage.getItem('aipm_supportdoc_' + docIdx + '_' + itemIdx);
+  if (saved) {
+    editor.value = JSON.parse(saved);
+    status.textContent = '\u2705 \u5DF2\u52A0\u8F7D\u7528\u6237\u4FEE\u6539\u7248\u672C';
+  } else if (item.url) {
+    editor.value = '\u52A0\u8F7D\u4E2D...';
+    status.textContent = '\u52A0\u8F7D\u6A21\u677F...';
+    try {
+      const resp = await fetch(item.url);
+      if (resp.ok) {
+        editor.value = await resp.text();
+        status.textContent = '\uD83D\uDCC4 \u539F\u59CB\u6A21\u677F (\u672A\u4FEE\u6539)';
+      } else {
+        editor.value = '# ' + item.name + '\n\n\u53EF\u5728\u6B64\u7F16\u5199\u5185\u5BB9\u3002';
+        status.textContent = '\u6A21\u677F\u672A\u627E\u5230\uFF0C\u53EF\u81EA\u7531\u7F16\u5199';
+      }
+    } catch(e) {
+      editor.value = '# ' + item.name + '\n\n\u53EF\u5728\u6B64\u7F16\u5199\u5185\u5BB9\u3002';
+      status.textContent = '\u79BB\u7EBF\u6A21\u5F0F';
+    }
+  } else {
+    editor.value = '# ' + item.name + '\n\n\u53EF\u5728\u6B64\u7F16\u5199\u5185\u5BB9\u3002';
+    status.textContent = '\u65B0\u6587\u6863';
+  }
+  document.getElementById('tplModal').classList.add('show');
+}
+
 function closeTplModal() {
   document.getElementById('tplModal').classList.remove('show');
   currentTplIdx = null;
@@ -1764,16 +1804,26 @@ function closeTplModal() {
 function saveTemplate() {
   if (currentTplIdx === null) return;
   const content = document.getElementById('tplEditor').value;
-  saveTemplateContent(currentTplIdx, content);
+  if (typeof currentTplIdx === 'string' && currentTplIdx.startsWith('support_')) {
+    localStorage.setItem('aipm_supportdoc_' + currentTplIdx.replace('support_',''), JSON.stringify(content));
+  } else {
+    saveTemplateContent(currentTplIdx, content);
+  }
   document.getElementById('tplStatus').textContent = '\u2705 \u5DF2\u4FDD\u5B58';
   showToast('\u6A21\u677F\u5DF2\u4FDD\u5B58');
 }
 
 function resetTemplate() {
   if (currentTplIdx === null) return;
-  deleteTemplateContent(currentTplIdx);
+  if (typeof currentTplIdx === 'string' && currentTplIdx.startsWith('support_')) {
+    localStorage.removeItem('aipm_supportdoc_' + currentTplIdx.replace('support_',''));
+    const parts = currentTplIdx.replace('support_','').split('_');
+    openSupportDoc(parseInt(parts[0]), parseInt(parts[1]));
+  } else {
+    deleteTemplateContent(currentTplIdx);
+    openTplEditor(currentTplIdx);
+  }
   showToast('\u5DF2\u6062\u590D\u9ED8\u8BA4\u6A21\u677F');
-  openTplEditor(currentTplIdx);
 }
 
 function deleteTemplate() {
