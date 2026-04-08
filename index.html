@@ -1825,16 +1825,27 @@ function openEditablePopup(ev, docIdx, col) {
   html += '</div>';
 
   // Add form footer
-  html += '<div class="popup-footer"><div class="add-row">';
-  html += '<input id="popupAddName" placeholder="\u540D\u79F0" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px">';
-  if (col !== 'support') {
+  html += '<div class="popup-footer">';
+  if (col === 'support') {
+    // Support docs: name input + file upload
+    html += '<div class="add-row" style="margin-bottom:6px">';
+    html += '<input id="popupAddName" placeholder="\u6587\u6863\u540D\u79F0" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px">';
+    html += '<button class="add-btn" onclick="addPopupItem()">\u6DFB\u52A0</button>';
+    html += '</div>';
+    html += '<div class="add-row">';
+    html += '<input type="file" id="popupSupportFile" style="flex:1;font-size:11px;border:1px solid #ddd;border-radius:6px;padding:4px 8px" onchange="addSupportFile(event)">';
+    html += '</div>';
+  } else {
+    html += '<div class="add-row">';
+    html += '<input id="popupAddName" placeholder="\u540D\u79F0" style="flex:1;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px">';
     html += '<input id="popupAddUrl" placeholder="URL" style="flex:1.5;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px">';
+    if (col === 'models') {
+      html += '<select id="popupAddTier" style="padding:6px;border:1px solid #ddd;border-radius:6px;font-size:11px"><option value="1">\u2B50\u6700\u4F73</option><option value="2">\u9002\u7528</option><option value="3">\u5907\u9009</option></select>';
+    }
+    html += '<button class="add-btn" onclick="addPopupItem()">\u6DFB\u52A0</button>';
+    html += '</div>';
   }
-  if (col === 'models') {
-    html += '<select id="popupAddTier" style="padding:6px;border:1px solid #ddd;border-radius:6px;font-size:11px"><option value="1">\u2B50\u6700\u4F73</option><option value="2">\u9002\u7528</option><option value="3">\u5907\u9009</option></select>';
-  }
-  html += '<button class="add-btn" onclick="addPopupItem()">\u6DFB\u52A0</button>';
-  html += '</div></div>';
+  html += '</div>';
 
   box.innerHTML = html;
   box.style.display = 'flex';
@@ -1874,8 +1885,10 @@ function renderDragItem(item, idx, col, docIdx) {
   let html = '<div class="item-card" draggable="true" data-idx="' + idx + '">';
   html += '<span class="drag-handle" title="\u62D6\u62FD\u6392\u5E8F">\u2630</span>';
   if (col === 'support') {
-    // Support docs: plain text, not a link
-    html += '<span style="font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#555">' + escHtml(item.name) + '</span>';
+    const hasFile = item.fileName;
+    const icon = hasFile ? '\uD83D\uDCCE ' : '';
+    html += '<span style="font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#555">' + icon + escHtml(item.name) + '</span>';
+    if (hasFile) html += '<span style="font-size:9px;color:#aaa;margin:0 4px;flex-shrink:0">' + escHtml(item.fileName) + '</span>';
   } else {
     const domain = item.url && item.url !== '#' ? item.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0] : '';
     html += '<a href="' + escHtml(item.url) + '" target="_blank" style="color:inherit;text-decoration:none;font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(item.name) + '</a>';
@@ -1958,6 +1971,24 @@ function addPopupItem() {
   render();
   refreshPopupBody();
   showToast('\u5DF2\u6DFB\u52A0: ' + name);
+}
+
+function addSupportFile(ev) {
+  const files = ev.target.files;
+  if (!files.length) return;
+  const { docIdx, col } = popupState;
+  if (col !== 'support') return;
+  const items = JSON.parse(JSON.stringify(getItems(docIdx, col)));
+  for (let i = 0; i < files.length; i++) {
+    const f = files[i];
+    const name = f.name.replace(/\.[^.]+$/, '');
+    items.push({ name: name, url: '', fileName: f.name });
+  }
+  saveItems(docIdx, col, items);
+  ev.target.value = '';
+  render();
+  refreshPopupBody();
+  showToast('\u6587\u6863\u5DF2\u6DFB\u52A0');
 }
 
 function refreshPopupBody() {
